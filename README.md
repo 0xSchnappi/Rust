@@ -1,6 +1,10 @@
 # Rust
 
 # TODO
+- rust特性
+  [参考文件](https://blog.csdn.net/starzhou/article/details/93367061)
+- rust使用配置文件
+  [参考链接](https://blog.csdn.net/xiaohuihui1400/article/details/130801880)
 - rust 连接mysql数据库
   [参考链接](https://rustmagazine.github.io/rust_magazine_2021/chapter_3/rust-mysql.html)
 - rust 连接redis数据

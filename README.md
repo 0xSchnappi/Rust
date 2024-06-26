@@ -1,4 +1,7 @@
 # Rust
+[通过例子学Rust](https://rustwiki.org/zh-CN/rust-by-example/index.html)
+## 基础
+  - 表达式
 
 # TODO
 - rust特性

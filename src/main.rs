@@ -417,7 +417,7 @@ fn data_type() {
 
     // copy和move隐式使用
     let a = 42;
-    let b = a; // Rust对于简单类型使用copy，在栈上复制,a可以再用
+    let b = a; // Rust对于简单类型使用copy，因为所占内存大小固定，在栈上复制,a可以再用
     println!("{:?}", a);
     let c = "hello".to_string();
     let d = c; // Rust使用的是move，hello的内存绑定到变量d上，之前c上的绑定就不能使用了，c无法再用

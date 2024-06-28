@@ -348,6 +348,103 @@ fn complex_num() {
     println!("{} + {}i", res.re, res.im);
 }
 
+/*
+ * 结构内存布局重排
+ * 重排后的结果是b, c, a，按照最大成员内存对齐
+ */
+struct A {
+    a: u8,
+    b: u32,
+    c: u16,
+}
+
+// 按照C的结构体内存布局，不允许内存重排
+#[repr(C)]
+struct B {
+    a: u8,
+    b: u32,
+    c: u16,
+}
+
+//  枚举类型：以枚举类型成员最大的对齐值为准，不需要为每个枚举体值都对齐
+enum D {
+    One,
+    Two,
+}
+enum E {
+    N,
+    H(u32),
+    M(Box<u32>),
+}
+
+union F {
+    u: u32,
+    v: u64,
+}
+
+// trait 重载
+struct G;
+impl G {
+    fn hello(&self) {
+        println!("in G");
+    }
+}
+
+trait Hello {
+    fn hello(&self);
+}
+
+// 函数重载
+impl Hello for G {
+    fn hello(&self) {
+        println!("from hello trait")
+    }
+}
+
+// 泛型
+fn foo<T>(x: T) -> T {
+    return x;
+}
+
+fn data_type() {
+    println!("A结构体占用内存大小:{:?}", std::mem::size_of::<A>());
+    println!("B结构体占用内存大小:{:?}", std::mem::size_of::<B>());
+
+    println!("D: {:?}", std::mem::size_of::<D>());
+    println!("Box<u32>: {:?}", std::mem::size_of::<Box<u32>>());
+    println!("E: {:?}", std::mem::size_of::<E>());
+    println!("F: {:?}", std::mem::size_of::<F>());
+
+    // copy和move隐式使用
+    let a = 42;
+    let b = a; // Rust对于简单类型使用copy，在栈上复制,a可以再用
+    println!("{:?}", a);
+    let c = "hello".to_string();
+    let d = c; // Rust使用的是move，hello的内存绑定到变量d上，之前c上的绑定就不能使用了，c无法再用
+    // println!("c: {:?}", c);
+
+    let e = G;
+    e.hello();
+
+    // trait 类似于接口
+    <G as Hello>::hello(&e);
+
+    // Rust泛型速度快，不占用内存--- 静态分发
+    assert_eq!(foo(1), 1);
+    /*
+     * Rust静态分发就是在编译阶段将foo(1)转为静态函数
+     * fn foo_1(x:i32) -> i32 {
+     *     return x;
+     * }
+     */
+    assert_eq!(foo("hello"), "hello");
+    /*
+     * 同理foo("hello")将被转换如下
+     * fn foo_2(x: &'static str) -> &'static str{
+     *     return x;
+     * } 
+     */
+}
 
 fn main() {
     hellworld();
@@ -361,7 +458,7 @@ fn main() {
     // for i in Range{start: 1, end:5} {
     //     print!("{}",i);
     // }
-    let test = Range{start:1, end:5};
+    let test = Range { start: 1, end: 5 };
     print!("{:?}", test);
 
     for i in RangeInclusive::new(1, 5) {
@@ -369,4 +466,5 @@ fn main() {
     }
     // https://course.rs/basic/base-type/statement-expression.html
 
+    data_type();
 }

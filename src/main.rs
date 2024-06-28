@@ -3,10 +3,10 @@
 
 /// 文档注释
 /// 稳定注释
-use std::*;
+use std::fmt;
 
-use fmt::{write, Formatter};
-use path::Display;
+// 有理数和复数社区库，没有标准库
+use num::complex::Complex;
 
 fn comment() {
     // 普通行注释
@@ -117,12 +117,12 @@ struct MinMax(i64, i64);
 
 impl fmt::Display for MinMax {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,"({}, {})", self.0, self.1)
+        write!(f, "({}, {})", self.0, self.1)
     }
 }
 
 #[derive(Debug)]
-struct Point2D{
+struct Point2D {
     x: f64,
     y: f64,
 }
@@ -145,12 +145,14 @@ fn displayout() {
     println!("Display: {}", minmax);
     println!("Debug: {:?}", minmax);
 
-    let big_range =   MinMax(-300, 300);
+    let big_range = MinMax(-300, 300);
     let small_range = MinMax(-3, 3);
 
-    println!("The big range is {big} and the small is {small}",
-             small = small_range,
-             big = big_range);
+    println!(
+        "The big range is {big} and the small is {small}",
+        small = small_range,
+        big = big_range
+    );
 
     let point = Point2D { x: 3.3, y: 7.2 };
 
@@ -168,17 +170,19 @@ struct List(Vec<i32>);
 impl fmt::Display for List {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let vec = &self.0;
-        write!(f,"[")?;
+        write!(f, "[")?;
 
         for (count, v) in vec.iter().enumerate() {
-            if count != 0 { write!(f, ", ")?;}
+            if count != 0 {
+                write!(f, ", ")?;
+            }
             write!(f, "{}", v)?;
         }
-        write!(f,"]")
+        write!(f, "]")
     }
 }
 
-fn DisplayList(){
+fn DisplayList() {
     let v = List(vec![1, 2, 3]);
     println!("{}", v);
 }
@@ -190,12 +194,19 @@ struct City {
 }
 
 impl fmt::Display for City {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let lat_c = if self.lat >= 0.0 {'N'} else {'S'};
-        let lon_c = if self.lon >= 0.0 {'E'} else {'W'};
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let lat_c = if self.lat >= 0.0 { 'N' } else { 'S' };
+        let lon_c = if self.lon >= 0.0 { 'E' } else { 'W' };
 
-        write!(f, "{}: {:.3}°{} {:.3}°{}",
-                self.name, self.lat.abs(), lat_c, self.lon.abs(), lon_c)
+        write!(
+            f,
+            "{}: {:.3}°{} {:.3}°{}",
+            self.name,
+            self.lat.abs(),
+            lat_c,
+            self.lon.abs(),
+            lon_c
+        )
     }
 }
 
@@ -208,17 +219,45 @@ struct Color {
 
 fn DisplayCity() {
     for city in [
-        City { name: "Dublin", lat: 53.347778, lon: -6.259722 },
-        City { name: "Oslo", lat: 59.95, lon: 10.75 },
-        City { name: "Vancouver", lat: 49.25, lon: -123.1 },  
-    ].iter() {
+        City {
+            name: "Dublin",
+            lat: 53.347778,
+            lon: -6.259722,
+        },
+        City {
+            name: "Oslo",
+            lat: 59.95,
+            lon: 10.75,
+        },
+        City {
+            name: "Vancouver",
+            lat: 49.25,
+            lon: -123.1,
+        },
+    ]
+    .iter()
+    {
         println!("{}", *city)
     }
     for color in [
-        Color { red: 128, green: 255, blue: 90 },
-        Color { red: 0, green: 3, blue: 254 },
-        Color { red: 0, green: 0, blue: 0 },
-    ].iter() {
+        Color {
+            red: 128,
+            green: 255,
+            blue: 90,
+        },
+        Color {
+            red: 0,
+            green: 3,
+            blue: 254,
+        },
+        Color {
+            red: 0,
+            green: 0,
+            blue: 0,
+        },
+    ]
+    .iter()
+    {
         // 在添加了针对 fmt::Display 的实现后，请改用 {} 检验效果。
         println!("{:?}", *color)
     }
@@ -234,8 +273,100 @@ fn hellworld() {
     println!("Hello World");
 }
 
+fn var_shadowing() {
+    /*
+    *变量遮蔽的用处在于，如果你在某个作用域内无需再使用之前的变量（在被遮蔽后，无法再访问到之前的同名变量），
+    就可以重复的使用变量名字，而不用绞尽脑汁去想更多的名字。
+    *   */
+    let x = 5;
+    // 在var_shadowing函数的作用域内对之前的x进行遮蔽
+    let x = x + 1;
+
+    {
+        // 在当前的花括号作用域内，对之前的x进行遮蔽
+        let x = x * 2;
+        println!("The vaule of x in the scope is:{}", x);
+    }
+    println!("The value of x is: {}", x);
+}
+
+fn int_overflow() {
+    /*
+     * 使用 wrapping_* 方法在所有模式下都按照补码循环溢出规则处理，例如 wrapping_add
+     * 如果使用 checked_* 方法时发生溢出，则返回 None 值
+     * 使用 overflowing_* 方法返回该值和一个指示是否存在溢出的布尔值
+     * 使用 saturating_* 方法，可以限定计算后的结果不超过目标类型的最大值或低于最小值
+     */
+    let a: u8 = 255;
+    let b = a.wrapping_add(20);
+    let c: Option<u8> = a.checked_add(20);
+    println!("b = {} c = {:?}", b, c);
+}
+
+fn float_trap() {
+    // 浮点数比较大小
+    let abc: (f32, f32, f32) = (0.1, 0.2, 0.3);
+    let xyz: (f64, f64, f64) = (0.1, 0.2, 0.3);
+
+    println!("abc (f32)");
+    println!("   0.1 + 0.2: {:x}", (abc.0 + abc.1).to_bits());
+    println!("         0.3: {:x}", (abc.2).to_bits());
+    println!();
+
+    println!("xyz (f64)");
+    println!("   0.1 + 0.2: {:x}", (xyz.0 + xyz.1).to_bits());
+    println!("         0.3: {:x}", (xyz.2).to_bits());
+    println!();
+
+    assert!(abc.0 + abc.1 == abc.2);
+    // assert!(xyz.0 + xyz.1 == xyz.2);
+
+    // Rust浮点数类型使用NaN(not a number)类型处理
+    // 所有跟NaN交互的操作，都会返回一个NaN
+    // 未定义的数学行为(负数取平方根)
+    // let x = (-42.0_f32).sqrt();
+    // assert_eq!(x, x);
+
+    // 防御性编程
+    let x = (-42.0_f32).sqrt();
+    if x.is_nan() {
+        println!("未定的数学行为")
+    }
+}
+
+fn range_chapter() {
+    // 序列仅限于数字和字符
+    for i in 'A'..='s' {
+        print!("{}", i);
+    }
+}
+
+fn complex_num() {
+    let a = Complex { re: 2.1, im: -1.2 };
+    let b = Complex::new(11.1, 22.2);
+    let res = a + b;
+    println!("{} + {}i", res.re, res.im);
+}
 
 
 fn main() {
     hellworld();
+    var_shadowing();
+    int_overflow();
+    float_trap();
+    range_chapter();
+    complex_num();
+
+    use std::ops::{Range, RangeInclusive};
+    // for i in Range{start: 1, end:5} {
+    //     print!("{}",i);
+    // }
+    let test = Range{start:1, end:5};
+    print!("{:?}", test);
+
+    for i in RangeInclusive::new(1, 5) {
+        print!("{}", i);
+    }
+    // https://course.rs/basic/base-type/statement-expression.html
+
 }

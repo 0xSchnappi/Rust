@@ -496,11 +496,86 @@ fn ownership() {
     let s3 = takes_and_gives_back(s2); // s2 被移动到
                                        // takes_and_gives_back 中,
                                        // 它也将返回值移给 s3
-
 } // 这里, x 先移出了作用域，然后是 s。但因为 s 的值已被移走，
   // 所以不会有特殊操作
   // 这里, s3 移出作用域并被丢弃。s2 也移出作用域，但已被移走，
   // 所以什么也不会发生。s1 移出作用域并被丢弃
+
+fn first_word(s: &String) -> &str {
+    &s[..1]
+}
+
+fn say_hello_str(s: &str) {
+    println!("{}",s);
+}
+
+fn say_hello_string(s: String) {
+    println!("{}",s);
+}
+fn string_unicode() {
+    // rust中的字符是unicode占4个字节，字符串使用utf-8是可变字符，占(1-4)个字符
+    // str是硬编码进可执行文件的，不能修改，string类型是可增长、可改变且具有所有权的UTF-8编码字符串
+    let s = "中国人";
+    // 在对字符串使用切片语法时需要格外小心，切片的索引必须落在字符之间的边界位置，
+    // 也就是 UTF-8 字符的边界，例如中文在 UTF-8 中占用三个字节，下面的代码就会崩溃：
+    // let a = &s[0..1];
+    let a = &s[0..3];
+    println!("{}", a);
+
+    let mut b = String::from("hello world");
+
+    let word = first_word(&b);
+
+    /*
+     * 回忆一下借用的规则：当我们已经有了可变借用时，就无法再拥有不可变的借用。因为 clear 需要清空改
+     * 变 String，因此它需要一个可变借用（利用 VSCode 可以看到该方法的声明是 pub fn clear(&mut self) ，
+     * 参数是对自身的可变借用 ）；而之后的 println! 又使用了不可变借用，也就是在 s.clear() 处可变借用与
+     * 不可变借用试图同时生效，因此编译无法通过。
+     */
+    // b.clear(); // error!
+
+    println!("the first word is: {}", word);
+
+    // str和string相互转换
+    let a_str = "hello str";
+    let a_string = String::from("hello string");
+    // string ==> &str
+    say_hello_str(&a_string);
+    say_hello_str(&a_string[..]);
+    say_hello_str(a_string.as_str());
+    // &str ==> string
+    say_hello_string(a_str.to_string());
+    
+    let s1 = String::from("hello,");
+    let s2 = String::from("world!");
+    // 连接字符串
+    let d = format!("{} {}!", s1, s2);
+    println!("{}", d);
+    // 在下句中，s1的所有权被转移走了，因此后面不能再使用s1
+    let s3 = s1 + &s2;
+    assert_eq!(s3,"hello,world!");
+    // 下面的语句如果去掉注释，就会报错
+    // println!("{}",s1);
+    // 换行了也会保持之前的字符串格式
+    // 使用\忽略换行符
+    let long_string = "String literals
+                        can span multiple lines.
+                        The linebreak and indentation here ->\
+                        <- can be escaped too!";
+    println!("{}", long_string);
+    // 遍历utf-8字符串的方法
+    for c in "中国人".chars() {
+        println!("{}", c);
+    }
+    // 获取utf-8子串的考虑使用utf8_slice
+    // 切片
+    let arr = [1, 2, 3];
+    let s1: &[i32] = &arr[0..2];    // 为什么此处需要引用
+
+    let s2: &str = "hello, world";
+    
+    
+}
 
 fn main() {
     hellworld();
@@ -523,4 +598,12 @@ fn main() {
 
     data_type();
     ownership();
+    string_unicode();
+
+    // 还能使用 \ 来连接多行字符串
+    let long_string = "String literals
+                        can span multiple lines.
+                        The linebreak and indentation here \
+                         can be escaped too!";
+    println!("{}", long_string);
 }

@@ -658,7 +658,7 @@ fn struct_practice() {
     };
 
     // 通过这种解构式模式匹配，person.name 的所有权被转移给新的变量 `name`
-    // 但是，这里 `age` 变量却是对 person.age 的引用, 这里 ref 的使用相当于: let age = &person.age 
+    // 但是，这里 `age` 变量却是对 person.age 的引用, 这里 ref 的使用相当于: let age = &person.age
     let Person_1 { name, ref age } = person;
 
     println!("The person's age is {}", age);
@@ -683,7 +683,7 @@ enum PokerSuit {
 #[derive(Debug)]
 struct PokerCard {
     suit: PokerSuit,
-    value: u8
+    value: u8,
 }
 
 #[derive(Debug)]
@@ -726,9 +726,6 @@ fn arrary_practice() {
     let slice: &[i32] = &a[1..3];
 
     assert_eq!(slice, &[2, 3]);
-
-    
-
 }
 
 fn main() {
@@ -758,7 +755,3 @@ fn main() {
     enum_practice();
     arrary_practice();
 }
-
-
-
-

@@ -3,7 +3,7 @@
 
 /// 文档注释
 /// 稳定注释
-use std::fmt;
+use std::fmt::{self, Display};
 
 // 有理数和复数社区库，没有标准库
 use num::complex::Complex;
@@ -496,6 +496,7 @@ fn ownership() {
     let s3 = takes_and_gives_back(s2); // s2 被移动到
                                        // takes_and_gives_back 中,
                                        // 它也将返回值移给 s3
+    println!("s3 test {:?}", s3)
 } // 这里, x 先移出了作用域，然后是 s。但因为 s 的值已被移走，
   // 所以不会有特殊操作
   // 这里, s3 移出作用域并被丢弃。s2 也移出作用域，但已被移走，
@@ -506,13 +507,19 @@ fn first_word(s: &String) -> &str {
 }
 
 fn say_hello_str(s: &str) {
-    println!("{}",s);
+    println!("{}", s);
 }
 
 fn say_hello_string(s: String) {
-    println!("{}",s);
+    println!("{}", s);
 }
 fn string_unicode() {
+    // 还能使用 \ 来连接多行字符串
+    let long_string = "String literals
+        can span multiple lines.
+        The linebreak and indentation here \
+         can be escaped too!";
+    println!("{}", long_string);
     // rust中的字符是unicode占4个字节，字符串使用utf-8是可变字符，占(1-4)个字符
     // str是硬编码进可执行文件的，不能修改，string类型是可增长、可改变且具有所有权的UTF-8编码字符串
     let s = "中国人";
@@ -545,7 +552,7 @@ fn string_unicode() {
     say_hello_str(a_string.as_str());
     // &str ==> string
     say_hello_string(a_str.to_string());
-    
+
     let s1 = String::from("hello,");
     let s2 = String::from("world!");
     // 连接字符串
@@ -553,7 +560,7 @@ fn string_unicode() {
     println!("{}", d);
     // 在下句中，s1的所有权被转移走了，因此后面不能再使用s1
     let s3 = s1 + &s2;
-    assert_eq!(s3,"hello,world!");
+    assert_eq!(s3, "hello,world!");
     // 下面的语句如果去掉注释，就会报错
     // println!("{}",s1);
     // 换行了也会保持之前的字符串格式
@@ -570,11 +577,158 @@ fn string_unicode() {
     // 获取utf-8子串的考虑使用utf8_slice
     // 切片
     let arr = [1, 2, 3];
-    let s1: &[i32] = &arr[0..2];    // 为什么此处需要引用
+    let s1: &[i32] = &arr[0..2]; // 为什么此处需要引用
 
     let s2: &str = "hello, world";
+}
+
+#[derive(Debug)]
+struct User {
+    active: bool,
+    username: String,
+    email: String,
+    sign_in_count: u64,
+}
+
+// 可以作为类似于构造函数
+fn build_user(email: String, username: String) -> User {
+    User {
+        email: email,
+        username: username,
+        active: true,
+        sign_in_count: 1,
+    }
+}
+
+#[derive(Debug)]
+struct Person_1 {
+    name: String,
+    age: Box<u8>,
+}
+
+fn struct_practice() {
+    let user1 = User {
+        email: String::from("someone@example.com"),
+        username: String::from("someusername123"),
+        active: true,
+        sign_in_count: 1,
+    };
+    // 添加mut，结构体字段才可以修改
+    let user2 = User {
+        active: user1.active,
+        username: user1.username,
+        email: String::from("another@example.com"),
+        sign_in_count: user1.sign_in_count,
+    };
+    // 简化上述表达
+    let user3 = User {
+        email: String::from("example@qq.com"),
+        ..user2
+    };
+    println!("{}", user1.active);
+    // 下面这行会报错
+    // 原因是user2获取了user1的string类型的所有权
+    // println!("{:?}", user1);
+    println!("{:?}", user3);
+    println!("{:#?}", user3);
+    dbg!(&user3);
+
+    /*
+     * 元组结构体特性和使用场景
+     * 特性：元组结构体不需要字段名
+     * 应用： 表示颜色或者3d(x,y,z)行业默认顺序的，并且不用字段名解释的
+     */
+    struct Color(i32, i32, i32);
+    let _black = Color(0, 0, 0);
+
+    /*
+     * 单元结构体
+     * 特性： 不需要字段，只关注行为
+     */
+    struct AlwaysEqual;
+
+    let _subject = AlwaysEqual;
+
+    // 我们不关心 AlwaysEqual 的字段数据，只关心它的行为，因此将它声明为单元结构体，然后再为它实现某个特征
+    // impl SomeTrait  for AlwaysEqual {}
+
+    let person = Person_1 {
+        name: String::from("Alice"),
+        age: Box::new(20),
+    };
+
+    // 通过这种解构式模式匹配，person.name 的所有权被转移给新的变量 `name`
+    // 但是，这里 `age` 变量却是对 person.age 的引用, 这里 ref 的使用相当于: let age = &person.age 
+    let Person_1 { name, ref age } = person;
+
+    println!("The person's age is {}", age);
+
+    println!("The person's name is {}", name);
+
+    // Error! 原因是 person 的一部分已经被转移了所有权，因此我们无法再使用它
+    //println!("The person struct is {:?}", person);
+
+    // 虽然 `person` 作为一个整体无法再被使用，但是 `person.age` 依然可以使用
+    println!("The person's age from person struct is {}", person.age);
+}
+
+#[derive(Debug)]
+enum PokerSuit {
+    Clubs,
+    Spades,
+    Diamonds,
+    Hearts,
+}
+
+#[derive(Debug)]
+struct PokerCard {
+    suit: PokerSuit,
+    value: u8
+}
+
+#[derive(Debug)]
+enum PokerCard_1 {
+    Clubs(u8),
+    Spades(u8),
+    Diamonds(u8),
+    Hearts(u8),
+}
+
+fn enum_practice() {
+    let c1 = PokerCard {
+        suit: PokerSuit::Clubs,
+        value: 1,
+    };
+    let c2 = PokerCard {
+        suit: PokerSuit::Diamonds,
+        value: 12,
+    };
+    println!("c1{:?}", c1);
+    println!("c2{:?}", c2);
+
+    let c1 = PokerCard_1::Spades(5);
+    let c2 = PokerCard_1::Diamonds(13);
+    println!("c1{:?}", c1);
+    println!("c2{:?}", c2);
+}
+
+fn arrary_practice() {
+    // 输入多个数组元素非基础类型
+    let array: [String; 8] = std::array::from_fn(|_i| String::from("rust is good!"));
+
+    println!("{:#?}", array);
+
+    let a: [i32; 5] = [1, 2, 3, 4, 5];
+    // 索引访问
+    println!("index=1: {}", a[1]);
+
+    // 数组切片
+    let slice: &[i32] = &a[1..3];
+
+    assert_eq!(slice, &[2, 3]);
+
     
-    
+
 }
 
 fn main() {
@@ -600,10 +754,11 @@ fn main() {
     ownership();
     string_unicode();
 
-    // 还能使用 \ 来连接多行字符串
-    let long_string = "String literals
-                        can span multiple lines.
-                        The linebreak and indentation here \
-                         can be escaped too!";
-    println!("{}", long_string);
+    struct_practice();
+    enum_practice();
+    arrary_practice();
 }
+
+
+
+

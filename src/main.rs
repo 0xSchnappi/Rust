@@ -969,6 +969,18 @@ fn match_practice() -> u8 {
     }
 }
 
+fn plus_one(x: Option<i32>) -> Option<i32> {
+    match x {
+        None => None,
+        Some(i) => Some(i + 1),
+    }
+}
+fn deconstruct_option() {
+    let five = Some(5);
+    let six = plus_one(five);
+    let none = plus_one(None);
+}
+
 fn main() {
     hellworld();
     var_shadowing();
@@ -997,4 +1009,5 @@ fn main() {
     arrary_practice();
     control();
     match_practice();
+    deconstruct_option();
 }

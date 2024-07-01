@@ -883,7 +883,39 @@ enum Action {
     ChangeColorRGB(u16, u16, u16),
 }
 
+enum Message {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+
+fn show_message(msg: Message) {
+    match msg {
+        Message::Move { x: a, y: b } => {
+            // 这里匹配 Message::Move重点是非元组的如何匹配
+            assert_eq!(a, 1);
+            assert_eq!(b, 3);
+        }
+        Message::ChangeColor(r, g, b) => {
+            assert_eq!(g, 255);
+            assert_eq!(b, 0);
+        }
+        _ => println!("no data in these variants"),
+    }
+}
+
 fn match_practice() -> u8 {
+    let msgs = [
+        Message::Quit,
+        Message::Move { x: 1, y: 3 },
+        Message::ChangeColor(255, 255, 0),
+    ];
+
+    for msg in msgs {
+        show_message(msg)
+    }
+
     let dire = Direction::South;
     let n = match dire {
         Direction::East => 3,
@@ -975,10 +1007,27 @@ fn plus_one(x: Option<i32>) -> Option<i32> {
         Some(i) => Some(i + 1),
     }
 }
+
 fn deconstruct_option() {
     let five = Some(5);
     let six = plus_one(five);
     let none = plus_one(None);
+}
+
+fn scenes() {
+    // while 和 let 条件循环
+    // Vec是动态数组
+    let mut stack = Vec::new();
+
+    // 向数组尾部插入元素
+    stack.push(1);
+    stack.push(2);
+    stack.push(3);
+
+    // stack.pop从数组尾部弹出元素
+    while let Some(top) = stack.pop() {
+        println!("{}", top);
+    }
 }
 
 fn main() {
@@ -1010,4 +1059,5 @@ fn main() {
     control();
     match_practice();
     deconstruct_option();
+    scenes();
 }

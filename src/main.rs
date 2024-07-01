@@ -728,6 +728,129 @@ fn arrary_practice() {
     assert_eq!(slice, &[2, 3]);
 }
 
+fn control() {
+    // if语句块是表达式，也是没有C中的?关键字的原因
+    let condition = true;
+    let number = if condition { 5 } else { 6 };
+
+    println!("The value of number is: {}", number);
+
+    let n = 6;
+
+    if n % 4 == 0 {
+        println!("number is divisible by 4");
+    } else if n % 3 == 0 {
+        println!("number is divisible by 3");
+    } else if n % 2 == 0 {
+        println!("number is divisible by 2");
+    } else {
+        println!("number is not divisible by 4, 3, or 2");
+    }
+
+    for i in 1..=5 {
+        println!("{}", i);
+    }
+
+    // for循环遍历集合往往使用引用，除非你不想使用该集合，因为不使用引用会导致集合的所有权转移到for语句块
+    /*
+     *      使用方法                等价使用方法                                           所有权
+     * for item in collection       for item in IntoIterator::into_iter(collection)         转移所有权
+     * for item in &collection      for item in collection.iter()                           不可变借用
+     * for item in &mut collection  for item in collection.iter_mut()                       可变借用
+     */
+    // 获取元素索引
+    let a = [4, 3, 2, 1];
+    // `.iter()` 方法把 `a` 数组变成一个迭代器
+    for (i, v) in a.iter().enumerate() {
+        println!("第{}个元素是{}", i + 1, v);
+    }
+
+    // 对比两种循环方式的优劣
+    /*
+     * 性能：第一种使用方式中 collection[index] 的索引访问，会因为边界检查(Bounds Checking)导
+     * 致运行时的性能损耗 —— Rust 会检查并确认 index 是否落在集合内，但是第二种直接迭代的方式
+     * 就不会触发这种检查，因为编译器会在编译时就完成分析并证明这种访问是合法的
+     *
+     * 安全：第一种方式里对 collection 的索引访问是非连续的，存在一定可能性在两次访问之间，
+     * collection 发生了变化，导致脏数据产生。而第二种直接迭代的方式是连续访问，因此不存在这种
+     * 风险( 由于所有权限制，在访问过程中，数据并不会发生变化)。
+     */
+    // 第一种
+    let collection = [1, 2, 3, 4, 5];
+    for i in 0..collection.len() {
+        let item = collection[i];
+        // ...
+    }
+
+    // 第二种
+    for item in collection {}
+
+    // continue 跳出当前循环
+    for i in 1..4 {
+        if i == 2 {
+            continue;
+        }
+        println!("{}", i);
+    }
+
+    // break 跳出整个循环
+    for i in 1..4 {
+        if i == 2 {
+            break;
+        }
+        println!("{}", i);
+    }
+
+    // 条件循环
+    let mut n = 0;
+
+    while n <= 5 {
+        println!("{}!", n);
+
+        n = n + 1;
+    }
+
+    println!("我出来了！");
+
+    // 无限循环
+    let mut counter = 0;
+
+    let result = loop {
+        counter += 1;
+
+        if counter == 10 {
+            break counter * 2; // break 带返回值返回
+        }
+    };
+
+    println!("The result is {}", result);
+
+    // 当有多层循环时，你可以使用 continue 或 break 来控制外层的循环。要实现这一点，
+    // 外部的循环必须拥有一个标签 'label, 然后在 break 或 continue 时指定该标签
+    let mut count = 0;
+    'outer: loop {
+        'inner1: loop {
+            if count >= 20 {
+                // 这只会跳出 inner1 循环
+                break 'inner1; // 这里使用 `break` 也是一样的
+            }
+            count += 2;
+        }
+
+        count += 5;
+
+        'inner2: loop {
+            if count >= 30 {
+                break 'outer;
+            }
+
+            continue 'outer;
+        }
+    }
+
+    assert!(count == 30)
+}
+
 fn main() {
     hellworld();
     var_shadowing();
@@ -754,4 +877,5 @@ fn main() {
     struct_practice();
     enum_practice();
     arrary_practice();
+    control();
 }

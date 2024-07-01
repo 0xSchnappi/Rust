@@ -851,6 +851,124 @@ fn control() {
     assert!(count == 30)
 }
 
+enum Direction {
+    East,
+    West,
+    North,
+    South,
+}
+
+enum IpAddr {
+    Ipv4,
+    Ipv6,
+}
+
+#[derive(Debug)]
+enum UsState {
+    Alabama,
+    Alaska,
+    // --snip--
+}
+
+enum Coin {
+    Penny,
+    Nickel,
+    Dime,
+    Quarter(UsState), // 25美分硬币
+}
+
+enum Action {
+    Say(String),
+    MoveTo(i32, i32),
+    ChangeColorRGB(u16, u16, u16),
+}
+
+fn match_practice() -> u8 {
+    let dire = Direction::South;
+    let n = match dire {
+        Direction::East => 3,
+        Direction::North | Direction::South => {
+            println!("South or North");
+            1 // 可以有返回值
+        }
+        _ => 2,
+    };
+
+    let ip1 = IpAddr::Ipv6;
+    // 模式匹配赋值
+    let ip_str = match ip1 {
+        IpAddr::Ipv4 => "127.0.0.1",
+        _ => "::1",
+    };
+
+    println!("{}", ip_str);
+
+    // 模式绑定
+    let coin = Coin::Quarter(UsState::Alabama);
+    let coin_size = match coin {
+        Coin::Penny => 1,
+        Coin::Nickel => 5,
+        Coin::Dime => 10,
+        Coin::Quarter(state) => {
+            println!("State quarter from {:?}!", state);
+            25
+        }
+    };
+
+    let actions = [
+        Action::Say("Hello Rust".to_string()),
+        Action::MoveTo(1, 2),
+        Action::ChangeColorRGB(255, 255, 0),
+    ];
+    for action in actions {
+        match action {
+            Action::Say(s) => {
+                println!("{}", s);
+            }
+            Action::MoveTo(x, y) => {
+                println!("point from (0, 0) move to ({}, {})", x, y);
+            }
+            Action::ChangeColorRGB(r, g, _) => {
+                println!(
+                    "change color into '(r:{}, g:{}, b:0)', 'b' has been ignored",
+                    r, g,
+                );
+            }
+        }
+    }
+
+    // matches!宏
+    let foo = 'f';
+    assert!(matches!(foo, 'A'..='Z' | 'a'..='z'));
+
+    let bar = Some(4);
+    assert!(matches!(bar, Some(x) if x > 2));
+
+    // if let 匹配
+    let v = Some(3u8);
+    if let Some(3) = v {
+        println!("three");
+    }
+
+    let age = Some(30);
+    println!("在匹配前，age是{:?}", age);
+    match age {
+        Some(age) => println!("匹配出来的age是{}", age), // 存在变量遮蔽，遮蔽会在离开语句块后消失
+        _ => (),
+    }
+    println!("在匹配后，age是{:?}", age);
+
+    let dire = Direction::South;
+    match dire {
+        Direction::East => 3,
+        Direction::North | Direction::South => {
+            println!("South or North");
+            1 // 可以作为函数返回值
+        }
+        _ => 2,
+    }
+}
+
 fn main() {
     hellworld();
     var_shadowing();
@@ -878,4 +996,5 @@ fn main() {
     enum_practice();
     arrary_practice();
     control();
+    match_practice();
 }

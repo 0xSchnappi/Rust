@@ -988,7 +988,7 @@ fn match_practice() -> u8 {
         1..=5 => println!("one through five"),
         _ => println!("something else"),
     }
-    
+
     // 匹配守卫
     let num = Some(4);
 
@@ -1028,7 +1028,6 @@ fn match_practice() -> u8 {
         }
         _ => 2,
     }
-
 }
 
 fn plus_one(x: Option<i32>) -> Option<i32> {
@@ -1219,6 +1218,22 @@ fn foo_1(_: i32, y: i32) {
     println!("This code only uses the y parameter: {}", y);
 }
 
+// 结构体方法前面有，在此忽略
+// 为枚举实现方法
+#[allow(unused)]
+enum Messagea {
+    Quit,
+    Move { x: i32, y: i32 },
+    Write(String),
+    ChangeColor(i32, i32, i32),
+}
+
+impl Messagea {
+    fn call(&self) {
+        // 在这里定义方法体
+    }
+}
+
 fn main() {
     hellworld();
     var_shadowing();
@@ -1257,4 +1272,6 @@ fn main() {
     // https://www.yiibai.com/data_structure/circular-queue.html
     // https://learnku.com/articles/43145
     foo_1(3, 4);
+    let m = Messagea::Write(String::from("hello"));
+    m.call();
 }

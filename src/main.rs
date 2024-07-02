@@ -1432,6 +1432,62 @@ fn vector() {
     println!("{:?}", people);
 }
 
+fn hash_map(){
+    use std::collections::HashMap;
+
+    let teams_list = vec![
+        ("中国队".to_string(), 100),
+        ("美国队".to_string(), 10),
+        ("日本队".to_string(), 50),
+    ];
+
+    let teams_map: HashMap<_,_> = teams_list.into_iter().collect();
+    //使用into_iter将vec转为迭代器，再使用collect函数收集成集合类型，支持多种集合类型,_代表类型由collect推测
+    
+    println!("{:?}",teams_map);
+
+    // hashmap查找
+    let mut scores = HashMap::new();
+
+    scores.insert(String::from("Blue"), 10);
+    scores.insert(String::from("Yellow"), 50);
+    
+    let team_name = String::from("Blue");
+    let score: Option<&i32> = scores.get(&team_name);
+
+    // 循环遍历
+    for (key, value) in &scores {
+        println!("{}: {}", key, value);
+    }
+    // 查询Yellow对应的值，若不存在则插入新值
+    let v = scores.entry("Yellow".to_string()).or_insert(5);
+
+    let text = "hello world wonderful world";
+
+    let mut map = HashMap::new();
+    // 根据空格来切分字符串(英文单词都是通过空格切分)
+    for word in text.split_whitespace() {
+        let count = map.entry(word).or_insert(0);
+        // 若存在，则对已有的值更新
+        *count += 1;
+    }
+    
+    println!("{:?}", map);
+
+    // rust hash函数的安全性很高，函数SipHash在中等大小的key上性能不错,
+    // 但对于小型key（整数）或者大型key（字符串）来说，性能不够，
+    // 如果需要机制性能，可以考虑ahash库
+    // use std::hash::BuildHasherDefault;
+    // use std::collections::HashMap;
+    // // 引入第三方的哈希函数
+    // use twox_hash::XxHash64;
+    
+    // // 指定HashMap使用第三方的哈希函数XxHash64
+    // let mut hash: HashMap<_, _, BuildHasherDefault<XxHash64>> = Default::default();
+    // hash.insert(42, "the answer");
+    // assert_eq!(hash.get(&42), Some(&"the answer"));
+}
+
 fn main() {
     hellworld();
     var_shadowing();
@@ -1474,4 +1530,5 @@ fn main() {
     m.call();
     t();
     vector();
+    hash_map();
 }

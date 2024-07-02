@@ -1274,7 +1274,7 @@ fn display_array_1<T: std::fmt::Debug, const N: usize>(arr: [T; N]) {
     println!("{:?}", arr);
 }
 
-fn t(){
+fn t() {
     let integer = Point_1 { x: 5, y: 10 };
     let float = Point_1 { x: 1.0, y: 4.0 };
     let p = Point_1 { x: 5, y: 10 };
@@ -1282,7 +1282,7 @@ fn t(){
     println!("p.x = {}", p.x());
 
     let p1 = Point_2 { x: 5, y: 10.4 };
-    let p2 = Point_2 { x: "Hello", y: 'c'};
+    let p2 = Point_2 { x: "Hello", y: 'c' };
 
     let p3 = p1.mixup(p2);
 
@@ -1291,7 +1291,7 @@ fn t(){
     let arr: [i32; 3] = [1, 2, 3];
     display_array(&arr);
 
-    let arr: [i32;2] = [1,2];
+    let arr: [i32; 2] = [1, 2];
     display_array(&arr);
 
     let arr: [i32; 3] = [1, 2, 3];
@@ -1299,6 +1299,137 @@ fn t(){
 
     let arr: [i32; 2] = [1, 2];
     display_array_1(arr);
+}
+
+#[derive(Debug)]
+enum IpAddr_1 {
+    V4(String),
+    V6(String)
+}
+
+fn show_addr(ip: IpAddr_1) {
+    println!("{:?}",ip);
+}
+
+trait IpAddr_2 {
+    fn display(&self);
+}
+
+struct V4(String);
+impl IpAddr_2 for V4 {
+    fn display(&self) {
+        println!("ipv4: {:?}",self.0)
+    }
+}
+struct V6(String);
+impl IpAddr_2 for V6 {
+    fn display(&self) {
+        println!("ipv6: {:?}",self.0)
+    }
+}
+
+#[derive(Debug)]
+struct Person_2 {
+    name: String,
+    age: u32,
+}
+
+impl Person_2 {
+    fn new(name: String, age: u32) -> Person_2 {
+        Person_2 { name, age }
+    }
+}
+
+// 排序需要我们实现Ord特性
+// 实现 Ord 需要我们实现 Ord、Eq、PartialEq、PartialOrd 这些属性
+
+#[derive(Debug, Ord, Eq, PartialEq, PartialOrd)]
+struct Person_3 {
+    name: String,
+    age: u32,
+}
+
+impl Person_3 {
+    fn new(name: String, age: u32) -> Person_3 {
+        Person_3 { name, age }
+    }
+}
+fn vector() {
+    // get相比于索引获取值，会进行数组越界访问检查
+    let v = vec![1, 2, 3, 4, 5];
+
+    let third: &i32 = &v[2];
+    println!("第三个元素是 {}", third);
+
+    match v.get(2) {
+        Some(third) => println!("第三个元素是 {third}"),
+        None => println!("去你的第三个元素，根本没有！"),
+    }
+
+    let mut v = vec![1, 2, 3, 4, 5];
+
+    let first = &v[0];
+    
+    // v.push(6);   // error first进行了数组的不可变借用，这里又进行了可变借用，
+    /*
+     * 原因在于：数组的大小是可变的，当旧数组的大小不够用时，Rust 会重新分配一块更大的内存空间，然后把旧数组拷贝过来。
+     * 这种情况下，之前的引用显然会指向一块无效的内存，这非常 rusty —— 对用户进行严格的教育。
+     */
+    
+    println!("The first element is: {first}");
+
+    // 数组存储不同的值枚举类型实现
+    let v = vec![
+        IpAddr_1::V4("127.0.0.1".to_string()),
+        IpAddr_1::V6("::1".to_string())
+    ];
+
+    for ip in v {
+        show_addr(ip)
+    }
+
+
+    let v: Vec<Box<dyn IpAddr_2>> = vec![
+        Box::new(V4("127.0.0.1".to_string())),
+        Box::new(V6("::1".to_string())),
+    ];
+
+    for ip in v {
+        ip.display();
+    }
+
+    let mut v = Vec::with_capacity(10);
+    v.extend([1, 2, 3]);    // 附加数据到 v
+    println!("Vector 长度是: {}, 容量是: {}", v.len(), v.capacity());
+
+    v.reserve(100);        // 调整 v 的容量，至少要有 100 的容量
+    println!("Vector（reserve） 长度是: {}, 容量是: {}", v.len(), v.capacity());
+
+    v.shrink_to_fit();     // 释放剩余的容量，一般情况下，不会主动去释放容量
+    println!("Vector（shrink_to_fit） 长度是: {}, 容量是: {}", v.len(), v.capacity());
+
+    // 结构体数组排序
+    let mut people = vec![
+        Person_2::new("Zoe".to_string(), 25),
+        Person_2::new("Al".to_string(), 60),
+        Person_2::new("John".to_string(), 1),
+    ];
+    // 定义一个按照年龄倒序排序的对比函数
+    people.sort_unstable_by(|a, b| b.age.cmp(&a.age));
+
+    println!("{:?}", people);
+
+    let mut people = vec![
+        Person_3::new("Zoe".to_string(), 25),
+        Person_3::new("Al".to_string(), 60),
+        Person_3::new("Al".to_string(), 30),
+        Person_3::new("John".to_string(), 1),
+        Person_3::new("John".to_string(), 25),
+    ];
+
+    people.sort_unstable();
+
+    println!("{:?}", people);
 }
 
 fn main() {
@@ -1342,4 +1473,5 @@ fn main() {
     let m = Messagea::Write(String::from("hello"));
     m.call();
     t();
+    vector();
 }

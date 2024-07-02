@@ -1030,6 +1030,160 @@ fn scenes() {
     }
 }
 
+// 队列
+/*
+ * 初始化
+ * 入队
+ * 出队
+ * 求取队列长度
+ */
+
+#[derive(Debug)]
+struct MyQueue<T> {
+    qdata: Vec<T>,
+}
+
+impl<T> MyQueue<T> {
+    fn new() -> Self {
+        MyQueue { qdata: Vec::new() }
+    }
+
+    fn enqueue(&mut self, item: T) {
+        self.qdata.push(item);
+    }
+
+    fn dequeue(&mut self) -> Option<T> {
+        let l = self.qdata.len();
+
+        if l > 0 {
+            let v = self.qdata.remove(0);
+            Some(v)
+        } else {
+            None
+        }
+    }
+
+    fn size(&self) -> usize {
+        self.qdata.len()
+    }
+}
+
+fn queue_practice() {
+    let mut q = MyQueue::new();
+    q.enqueue(1);
+    q.enqueue(2);
+    println!("{:?}", q);
+    println!("size = {}", q.size());
+
+    q.dequeue();
+    println!("{:?}", q);
+    println!("size = {}", q.size());
+
+    q.dequeue();
+    println!("{:?}", q);
+    println!("size = {}", q.size());
+
+    q.dequeue();
+    println!("{:?}", q);
+    println!("size = {}", q.size());
+}
+
+// 循环队列
+/*
+ * MyCircularQueue(k): 构造器，设置队列长度为 k 。
+ * Front: 从队首获取元素。如果队列为空，返回 -1 。
+ * Rear: 获取队尾元素。如果队列为空，返回 -1 。
+ * enQueue(value): 向循环队列插入一个元素。如果成功插入则返回真。
+ * deQueue(): 从循环队列中删除一个元素。如果成功删除则返回真。
+ * isEmpty(): 检查循环队列是否为空。
+ * isFull(): 检查循环队列是否已满。
+ */
+
+struct MyCircularQueue {
+    v: Vec<i32>,
+    head: i32, // -1表示没有任何数据
+    tail: i32, // -1表示没有任何数据，其他情况指向下一个可用下标
+}
+
+impl MyCircularQueue {
+    fn new(k: i32) -> Self {
+        MyCircularQueue {
+            v: vec![0; k as usize],
+            head: -1,
+            tail: -1,
+        }
+    }
+
+    /* 插入节点 */
+    fn en_queue(&mut self, value: i32) -> bool {
+        if self.is_full() {
+            return false;
+        }
+        if self.is_empty() {
+            self.tail = 1;
+            self.head = 0;
+            self.v[0] = value;
+        } else {
+            self.v[self.tail as usize] = value;
+            self.tail += 1;
+            if self.tail >= self.v.len() as i32 {
+                self.tail = 0; // 队列已满
+            }
+        }
+        true
+    }
+
+    /* 删除节点 */
+    fn de_queue(&mut self) -> bool {
+        if self.is_empty() {
+            return false;
+        }
+        self.head += 1;
+        if self.head >= self.v.len() as i32 {
+            self.head = 0;
+        }
+        if self.tail == self.head {
+            self.tail = -1;
+            self.head = -1;
+        }
+        true
+    }
+
+    // 获取队列最后一个节点
+    fn rear(&self) -> i32 {
+        if self.is_empty() {
+            return -1;
+        }
+        let mut l = self.tail - 1;
+        if l < 0 {
+            l = (self.v.len() - 1) as i32;
+        }
+        self.v[l as usize]
+    }
+
+    /* 检查队列是否为空 */
+    fn is_empty(&self) -> bool {
+        return self.head == -1 && self.tail == -1; // 设定head tail为-1
+    }
+    /* 检查队列是否已满 */
+    fn is_full(&self) -> bool {
+        return self.head == self.tail && self.tail != -1; // ？？？
+    }
+}
+
+fn circular_queue_practice() {
+    let mut obj = MyCircularQueue::new(3);
+    assert_eq!(true, obj.en_queue(1));
+    assert_eq!(true, obj.en_queue(2));
+    assert_eq!(true, obj.en_queue(3));
+    assert_eq!(false, obj.en_queue(4));
+    assert_eq!(3, obj.rear());
+    assert_eq!(true, obj.is_full());
+    assert_eq!(true, obj.de_queue());
+    assert_eq!(true, obj.en_queue(4));
+    assert_eq!(4, obj.rear());
+}
+
 fn main() {
     hellworld();
     var_shadowing();
@@ -1060,4 +1214,11 @@ fn main() {
     match_practice();
     deconstruct_option();
     scenes();
+    queue_practice();
+    circular_queue_practice();
+    let v = vec![1; 5 as usize];
+    println!("{:?}", v);
+    // https://stevenbai.top/rust-leetcode/2019-06-07/
+    // https://www.yiibai.com/data_structure/circular-queue.html
+    // https://learnku.com/articles/43145
 }

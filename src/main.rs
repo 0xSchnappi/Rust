@@ -606,6 +606,11 @@ struct Person_1 {
     age: Box<u8>,
 }
 
+struct Point {
+    x: i32,
+    y: i32,
+}
+
 fn struct_practice() {
     let user1 = User {
         email: String::from("someone@example.com"),
@@ -670,6 +675,13 @@ fn struct_practice() {
 
     // 虽然 `person` 作为一个整体无法再被使用，但是 `person.age` 依然可以使用
     println!("The person's age from person struct is {}", person.age);
+
+    // 解构结构体
+    let p = Point { x: 0, y: 7 };
+
+    let Point { x, y } = p;
+    assert_eq!(0, x);
+    assert_eq!(7, y);
 }
 
 #[derive(Debug)]
@@ -969,6 +981,23 @@ fn match_practice() -> u8 {
         }
     }
 
+    // 匹配范围
+    let x = 5;
+
+    match x {
+        1..=5 => println!("one through five"),
+        _ => println!("something else"),
+    }
+    
+    // 匹配守卫
+    let num = Some(4);
+
+    match num {
+        Some(x) if x < 5 => println!("less than five: {}", x),
+        Some(x) => println!("{}", x),
+        None => (),
+    }
+
     // matches!宏
     let foo = 'f';
     assert!(matches!(foo, 'A'..='Z' | 'a'..='z'));
@@ -999,6 +1028,7 @@ fn match_practice() -> u8 {
         }
         _ => 2,
     }
+
 }
 
 fn plus_one(x: Option<i32>) -> Option<i32> {
@@ -1184,6 +1214,11 @@ fn circular_queue_practice() {
     assert_eq!(4, obj.rear());
 }
 
+fn foo_1(_: i32, y: i32) {
+    // 忽略参数
+    println!("This code only uses the y parameter: {}", y);
+}
+
 fn main() {
     hellworld();
     var_shadowing();
@@ -1221,4 +1256,5 @@ fn main() {
     // https://stevenbai.top/rust-leetcode/2019-06-07/
     // https://www.yiibai.com/data_structure/circular-queue.html
     // https://learnku.com/articles/43145
+    foo_1(3, 4);
 }

@@ -1234,6 +1234,73 @@ impl Messagea {
     }
 }
 
+// 结构体泛型
+struct Point_1<T> {
+    x: T,
+    y: T,
+}
+
+// 泛型函数
+impl<T> Point_1<T> {
+    fn x(&self) -> &T {
+        &self.x
+    }
+}
+
+struct Point_2<T, U> {
+    x: T,
+    y: U,
+}
+
+// 泛型结构体和泛型函数结合
+impl<T, U> Point_2<T, U> {
+    fn mixup<V, W>(self, other: Point_2<V, W>) -> Point_2<T, W> {
+        Point_2 {
+            x: self.x,
+            y: other.y,
+        }
+    }
+}
+
+// const泛型、值泛型
+// T: std::fmt::Debug是为了T可以使用{:?}格式化输出
+fn display_array<T: std::fmt::Debug>(arr: &[T]) {
+    // 可以处理任何数组
+    println!("{:?}", arr);
+}
+
+// N 就是 const 泛型，定义的语法是 const N: usize，表示 const 泛型 N ，它基于的值类型是 usize
+fn display_array_1<T: std::fmt::Debug, const N: usize>(arr: [T; N]) {
+    println!("{:?}", arr);
+}
+
+fn t(){
+    let integer = Point_1 { x: 5, y: 10 };
+    let float = Point_1 { x: 1.0, y: 4.0 };
+    let p = Point_1 { x: 5, y: 10 };
+
+    println!("p.x = {}", p.x());
+
+    let p1 = Point_2 { x: 5, y: 10.4 };
+    let p2 = Point_2 { x: "Hello", y: 'c'};
+
+    let p3 = p1.mixup(p2);
+
+    println!("p3.x = {}, p3.y = {}", p3.x, p3.y);
+
+    let arr: [i32; 3] = [1, 2, 3];
+    display_array(&arr);
+
+    let arr: [i32;2] = [1,2];
+    display_array(&arr);
+
+    let arr: [i32; 3] = [1, 2, 3];
+    display_array_1(arr);
+
+    let arr: [i32; 2] = [1, 2];
+    display_array_1(arr);
+}
+
 fn main() {
     hellworld();
     var_shadowing();
@@ -1274,4 +1341,5 @@ fn main() {
     foo_1(3, 4);
     let m = Messagea::Write(String::from("hello"));
     m.call();
+    t();
 }

@@ -1822,6 +1822,100 @@ fn t_obj() {
     print!("w = {}", w);
 }
 
+/*
+ * 这个示例会运行错误，原因就是生命周期
+ * 因为编译器想通过返回值确保函数调用后的引用生命周期分析
+ */
+// fn longest(x: &str, y: &str) -> &str {
+//     if x.len() > y.len() {
+//         x
+//     } else {
+//         y
+//     }
+// }
+
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+
+// 结构体生命周期，场景：当结构体使用引用类型时，就需要使用使用生命周期，如果不使用引用（比如String）会发生所有权转移
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+// 方法生命周期
+impl<'a> ImportantExcerpt<'a> {
+    fn level(&self) -> i32 {
+        3
+    }
+}
+
+// 生命周期约束
+// 'a是生命周期比'b长的约束
+impl<'a: 'b, 'b> ImportantExcerpt<'a> {
+    fn announce_and_return_part(&'a self, announcement: &'b str) -> &'b str {
+        println!("Attention please: {}", announcement);
+        self.part
+    }
+}
+
+impl<'a> ImportantExcerpt<'a> {
+    fn announce_and_return_part_1<'b>(&'a self, announcement: &'b str) -> &'b str
+    where
+        'a: 'b,
+    {
+        println!("Attention please: {}", announcement);
+        self.part
+    }
+}
+
+// 静态生命周期
+// 'static 拥有该生命周期的引用可以和整个程序活得一样久
+
+fn lifetime() {
+    // 生命周期标注并不会改变任何引用的实际作用域--鲁迅
+    // 生命周期的意义就是告诉编译器多个引用之间的关系
+    // 生命周期语法用来将函数的多个引用参数和返回值的作用域关联到一起，一旦关联到一起后，Rust 就拥有充分的信息来确保我们的操作是内存安全的。
+    let x = String::from("Hello world.");
+    let y = "hello";
+    println!("longest: {}", longest(x.as_str(), y));
+
+    let string1 = String::from("long string is long");
+
+    {
+        let string2 = String::from("xyz");
+        let result = longest(string1.as_str(), string2.as_str());
+        println!("The longest string is {}", result);
+    }
+    // println!("The longest string is {}", result); //因为longest的返回值的生命周期是string2的生命周期，因为是按照最小生命周期去计算的
+    /*
+     * 在上例中，string1 的作用域直到 main 函数的结束，而 string2 的作用域到内部花括号的结束 }，那
+     * 么根据之前的理论，'a 是两者中作用域较小的那个，也就是 'a 的生命周期等于 string2 的生命周期，
+     * 同理，由于函数返回的生命周期也是 'a，可以得出函数返回的生命周期也等于 string2 的生命周期。
+     *
+     * 现在来验证下上面的结论：result 的生命周期等于参数中生命周期最小的，因此要等于 string2 的生命
+     * 周期，也就是说，result 要活得和 string2 一样久，观察下代码的实现，可以发现这个结论是正确的！
+     */
+
+    // 结构体生命周期
+    let novel = String::from("Call me Ishmael. Some years ago...");
+    let first_sentence = novel.split('.').next().expect("Could not find a '.'");
+    let i = ImportantExcerpt {
+        part: first_sentence,
+    };
+
+    /*
+     * 生命周期消除的三条规则
+     * 1.每一个引用参数都会获得独自的生命周期
+     * 2.若只有一个输入生命周期（函数参数中只有一个引用类型），那么该生命周期会被赋给所有的输出生命周期
+     * 3.若存在多个输入生命周期，且其中一个是&self或&mut self，则&self的生命周期被赋给所有的输出生命周期
+     */
+}
+
 fn main() {
     hellworld();
     var_shadowing();
@@ -1867,4 +1961,5 @@ fn main() {
     hash_map();
     t();
     t_obj();
+    lifetime();
 }

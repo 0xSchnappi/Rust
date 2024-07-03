@@ -3,7 +3,10 @@
 
 /// 文档注释
 /// 稳定注释
-use std::fmt::{self, Display};
+use std::{
+    fmt::{self, Display},
+    iter::Sum,
+};
 
 // 有理数和复数社区库，没有标准库
 use num::complex::Complex;
@@ -1274,7 +1277,7 @@ fn display_array_1<T: std::fmt::Debug, const N: usize>(arr: [T; N]) {
     println!("{:?}", arr);
 }
 
-fn t() {
+fn generics() {
     let integer = Point_1 { x: 5, y: 10 };
     let float = Point_1 { x: 1.0, y: 4.0 };
     let p = Point_1 { x: 5, y: 10 };
@@ -1304,11 +1307,11 @@ fn t() {
 #[derive(Debug)]
 enum IpAddr_1 {
     V4(String),
-    V6(String)
+    V6(String),
 }
 
 fn show_addr(ip: IpAddr_1) {
-    println!("{:?}",ip);
+    println!("{:?}", ip);
 }
 
 trait IpAddr_2 {
@@ -1318,13 +1321,13 @@ trait IpAddr_2 {
 struct V4(String);
 impl IpAddr_2 for V4 {
     fn display(&self) {
-        println!("ipv4: {:?}",self.0)
+        println!("ipv4: {:?}", self.0)
     }
 }
 struct V6(String);
 impl IpAddr_2 for V6 {
     fn display(&self) {
-        println!("ipv6: {:?}",self.0)
+        println!("ipv6: {:?}", self.0)
     }
 }
 
@@ -1369,25 +1372,24 @@ fn vector() {
     let mut v = vec![1, 2, 3, 4, 5];
 
     let first = &v[0];
-    
+
     // v.push(6);   // error first进行了数组的不可变借用，这里又进行了可变借用，
     /*
      * 原因在于：数组的大小是可变的，当旧数组的大小不够用时，Rust 会重新分配一块更大的内存空间，然后把旧数组拷贝过来。
      * 这种情况下，之前的引用显然会指向一块无效的内存，这非常 rusty —— 对用户进行严格的教育。
      */
-    
+
     println!("The first element is: {first}");
 
     // 数组存储不同的值枚举类型实现
     let v = vec![
         IpAddr_1::V4("127.0.0.1".to_string()),
-        IpAddr_1::V6("::1".to_string())
+        IpAddr_1::V6("::1".to_string()),
     ];
 
     for ip in v {
         show_addr(ip)
     }
-
 
     let v: Vec<Box<dyn IpAddr_2>> = vec![
         Box::new(V4("127.0.0.1".to_string())),
@@ -1399,14 +1401,22 @@ fn vector() {
     }
 
     let mut v = Vec::with_capacity(10);
-    v.extend([1, 2, 3]);    // 附加数据到 v
+    v.extend([1, 2, 3]); // 附加数据到 v
     println!("Vector 长度是: {}, 容量是: {}", v.len(), v.capacity());
 
-    v.reserve(100);        // 调整 v 的容量，至少要有 100 的容量
-    println!("Vector（reserve） 长度是: {}, 容量是: {}", v.len(), v.capacity());
+    v.reserve(100); // 调整 v 的容量，至少要有 100 的容量
+    println!(
+        "Vector（reserve） 长度是: {}, 容量是: {}",
+        v.len(),
+        v.capacity()
+    );
 
-    v.shrink_to_fit();     // 释放剩余的容量，一般情况下，不会主动去释放容量
-    println!("Vector（shrink_to_fit） 长度是: {}, 容量是: {}", v.len(), v.capacity());
+    v.shrink_to_fit(); // 释放剩余的容量，一般情况下，不会主动去释放容量
+    println!(
+        "Vector（shrink_to_fit） 长度是: {}, 容量是: {}",
+        v.len(),
+        v.capacity()
+    );
 
     // 结构体数组排序
     let mut people = vec![
@@ -1432,7 +1442,7 @@ fn vector() {
     println!("{:?}", people);
 }
 
-fn hash_map(){
+fn hash_map() {
     use std::collections::HashMap;
 
     let teams_list = vec![
@@ -1441,17 +1451,17 @@ fn hash_map(){
         ("日本队".to_string(), 50),
     ];
 
-    let teams_map: HashMap<_,_> = teams_list.into_iter().collect();
+    let teams_map: HashMap<_, _> = teams_list.into_iter().collect();
     //使用into_iter将vec转为迭代器，再使用collect函数收集成集合类型，支持多种集合类型,_代表类型由collect推测
-    
-    println!("{:?}",teams_map);
+
+    println!("{:?}", teams_map);
 
     // hashmap查找
     let mut scores = HashMap::new();
 
     scores.insert(String::from("Blue"), 10);
     scores.insert(String::from("Yellow"), 50);
-    
+
     let team_name = String::from("Blue");
     let score: Option<&i32> = scores.get(&team_name);
 
@@ -1471,7 +1481,7 @@ fn hash_map(){
         // 若存在，则对已有的值更新
         *count += 1;
     }
-    
+
     println!("{:?}", map);
 
     // rust hash函数的安全性很高，函数SipHash在中等大小的key上性能不错,
@@ -1481,11 +1491,335 @@ fn hash_map(){
     // use std::collections::HashMap;
     // // 引入第三方的哈希函数
     // use twox_hash::XxHash64;
-    
+
     // // 指定HashMap使用第三方的哈希函数XxHash64
     // let mut hash: HashMap<_, _, BuildHasherDefault<XxHash64>> = Default::default();
     // hash.insert(42, "the answer");
     // assert_eq!(hash.get(&42), Some(&"the answer"));
+}
+pub trait Summary {
+    fn summarize_author(&self) -> String;
+
+    fn summarize(&self) -> String {
+        format!("(Read more from {}...)", self.summarize_author())
+    }
+}
+
+pub struct Weibo {
+    pub username: String,
+    pub content: String,
+}
+
+impl Summary for Weibo {
+    fn summarize(&self) -> String {
+        format!("{}发表了微博{}", self.username, self.content)
+    }
+
+    fn summarize_author(&self) -> String {
+        format!("author: {}", self.username)
+    }
+}
+
+// 特征约束
+pub fn notify(item: &impl Summary) {
+    println!("Breaking news! {}", item.summarize());
+}
+// 函数两个参数是不同的类型，只要这两个类型都实现了Summary特性即可
+pub fn notify_3(item1: &impl Summary, item2: &impl Summary) {}
+// 强制两个参数是同一种类型
+pub fn notify_4<T: Summary>(item1: &T, item2: &T) {}
+// 多重特征约束
+pub fn notify_1(item: &(impl Summary + Display)) {}
+pub fn notify_2<T: Summary + Display>(item: &T) {}
+// where 约束
+// fn some_function<T: Display + Clone, U: Clone + Debug>(t: &T, u: &U) -> i32 {}
+// fn some_function<T, U>(t: &T, u: &U) -> i32
+//     where T: Display + Clone,
+//           U: Clone + Debug
+// {}
+
+//函数返回 impl trait,但是该函数只能返回一种类型
+fn returns_summarizable() -> impl Summary {
+    Weibo {
+        username: String::from("sunface"),
+        content: String::from("m1 maxx太厉害"),
+    }
+}
+
+fn largest<T: PartialOrd + Copy>(list: &[T]) -> T {
+    let mut largest = list[0];
+
+    for &item in list.iter() {
+        if item > largest {
+            // 不是所以的类型都有比较大小的实现，所以PartialOrd
+            largest = item; // 所以对于实现Copy，才能深拷贝，不然所有权转移，list使用会出现问题
+        }
+    }
+
+    largest
+}
+
+use std::ops::Add;
+
+// 为Point结构体派生Debug特征，用于格式化输出
+#[derive(Debug)]
+struct Point_3<T: Add<T, Output = T>> {
+    //限制类型T必须实现了Add特征，否则无法进行+操作。
+    x: T,
+    y: T,
+}
+
+impl<T: Add<T, Output = T>> Add for Point_3<T> {
+    type Output = Point_3<T>;
+
+    fn add(self, p: Point_3<T>) -> Point_3<T> {
+        Point_3 {
+            x: self.x + p.x,
+            y: self.y + p.y,
+        }
+    }
+}
+
+fn add<T: Add<T, Output = T>>(a: T, b: T) -> T {
+    a + b
+}
+
+fn t() {
+    let weibo = Weibo {
+        username: "sunface".to_string(),
+        content: "好像微博没有tweet好用".to_string(),
+    };
+    println!("{}", weibo.summarize());
+    notify(&weibo);
+    let summary = returns_summarizable();
+
+    let number_list = vec![34, 50, 25, 100, 65];
+
+    let result = largest(&number_list);
+    println!("The largest number is {}", result);
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+
+    let result = largest(&char_list);
+    println!("The largest char is {}", result);
+
+    let p1 = Point_3 {
+        x: 1.1f32,
+        y: 1.1f32,
+    };
+    let p2 = Point_3 {
+        x: 2.1f32,
+        y: 2.1f32,
+    };
+    println!("{:?}", add(p1, p2));
+}
+
+pub trait Draw {
+    fn draw(&self);
+}
+pub struct Button {
+    pub width: u32,
+    pub height: u32,
+    pub label: String,
+}
+
+impl Draw for Button {
+    fn draw(&self) {
+        // 绘制按钮的代码
+        println!("{:?}", self.label);
+    }
+}
+
+struct SelectBox {
+    width: u32,
+    height: u32,
+    options: Vec<String>,
+}
+
+impl Draw for SelectBox {
+    fn draw(&self) {
+        // 绘制SelectBox的代码
+        println!("{:?}", self.options);
+    }
+}
+
+// 若 T 实现了 Draw 特征， 则调用该函数时传入的 Box<T> 可以被隐式转换成函数参数签名中的 Box<dyn Draw>
+fn draw1(x: Box<dyn Draw>) {
+    // 由于实现了 Deref 特征，Box 智能指针会自动解引用为它所包裹的值，然后调用该值对应的类型上定义的 `draw` 方法
+    x.draw();
+}
+
+fn draw2(x: &dyn Draw) {
+    x.draw();
+}
+
+// 这种写法有点是components可以存储实现Draw的所有类型
+pub struct Screen {
+    pub components: Vec<Box<dyn Draw>>,
+}
+
+impl Screen {
+    pub fn run(&self) {
+        for component in self.components.iter() {
+            component.draw();
+        }
+    }
+}
+// 如果只存储Draw的其中一个类型，可以使用泛型搭配特征约束，代码更清晰，性能更好
+pub struct Screen_1<T: Draw> {
+    pub components: Vec<T>,
+}
+
+impl<T> Screen_1<T>
+where
+    T: Draw,
+{
+    pub fn run(&self) {
+        for component in self.components.iter() {
+            component.draw();
+        }
+    }
+}
+// struct Counter {
+//     x: i32,
+//     y: i32,
+// }
+// pub trait Iterator {
+//     type Item;
+
+//     fn next(&mut self) -> Option<Self::Item>;
+// }
+
+// impl Iterator for Counter {
+//     type Item = i32;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         //
+//     }
+// }
+
+// 泛型
+// trait Container<A,B> {
+//     fn contains(&self,a: A,b: B) -> bool;
+// }
+
+// fn difference<A,B,C>(container: &C) -> i32
+//   where
+//     C : Container<A,B> {...}
+// trait
+// trait Container{
+//     type A;
+//     type B;
+//     fn contains(&self, a: &Self::A, b: &Self::B) -> bool;
+// }
+
+// fn difference<C: Container>(container: &C) {}
+
+// 调用同名方法
+// 优先调用类型上的方法
+// 调用特征上的方案
+trait Pilot {
+    fn fly(&self);
+    fn baby_name() -> String;
+}
+
+struct Human;
+
+impl Pilot for Human {
+    fn fly(&self) {
+        println!("This is your captain speaking.");
+    }
+
+    fn baby_name() -> String {
+        String::from("Spot")
+    }
+}
+
+impl Human {
+    fn fly(&self) {
+        println!("*waving arms furiously*");
+    }
+}
+
+// 特征定义中的特征约束
+trait OutlinePrint: Display {
+    fn outline_print(&self) {
+        let output = self.to_string();
+        let len = output.len();
+        println!("{}", "*".repeat(len + 4));
+        println!("*{}*", " ".repeat(len + 2));
+        println!("* {} *", output);
+        println!("*{}*", " ".repeat(len + 2));
+        println!("{}", "*".repeat(len + 4));
+    }
+}
+
+// 在外部类型上实现外部特征（newtype）---- 打破孤儿规则
+// 为Vec实现Display
+struct Wrapper(Vec<String>);
+
+impl Display for Wrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[{}]", self.0.join(","))
+    }
+}
+
+// 特征对象限制(特征安全)，主要原因不知的类型了
+// 方法的返回值不能是Self
+// 方法没有任何泛型参数
+fn t_obj() {
+    let button = Button {
+        width: 1,
+        height: 2,
+        label: String::from("I'am Button."),
+    };
+    let selectbox = SelectBox {
+        width: 1,
+        height: 2,
+        options: vec![String::from("I'am SelectBox."); 3],
+    };
+
+    // x 和 y 的类型 T 都实现了 `Draw` 特征，因为 Box<T> 可以在函数调用时隐式地被转换为特征对象 Box<dyn Draw>
+    draw2(&button);
+    draw2(&selectbox);
+    // 基于 x 的值创建一个 Box<f64> 类型的智能指针，指针指向的数据被放置在了堆上
+    draw1(Box::new(button));
+    // 基于 y 的值创建一个 Box<u8> 类型的智能指针
+    draw1(Box::new(selectbox));
+
+    let screen = Screen {
+        components: vec![
+            Box::new(SelectBox {
+                width: 75,
+                height: 10,
+                options: vec![
+                    String::from("Yes"),
+                    String::from("Maybe"),
+                    String::from("No"),
+                ],
+            }),
+            Box::new(Button {
+                width: 50,
+                height: 10,
+                label: String::from("OK"),
+            }),
+        ],
+    };
+
+    screen.run();
+
+    // 优先调用类型上的方法
+    let person = Human;
+    person.fly();
+    // 调用特征上的方法
+    Pilot::fly(&person);
+    // 当特征上没有self参数如何调用-----完全限定语法
+    // <Human as Pilot>相当于告诉编译器调用为Human实现Pilot的baby_name函数
+    println!("A baby pilot is called a {}", <Human as Pilot>::baby_name());
+
+    // 打破孤儿规则 newtype
+    let w = Wrapper(vec![String::from("hello"), String::from("world")]);
+    print!("w = {}", w);
 }
 
 fn main() {
@@ -1528,7 +1862,9 @@ fn main() {
     foo_1(3, 4);
     let m = Messagea::Write(String::from("hello"));
     m.call();
-    t();
+    generics();
     vector();
     hash_map();
+    t();
+    t_obj();
 }

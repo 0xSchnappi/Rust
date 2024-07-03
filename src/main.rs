@@ -1,12 +1,10 @@
 //! 文档注释
 //! 文档注释
 
+use std::fmt;
 /// 文档注释
 /// 稳定注释
-use std::{
-    fmt::{self, Display},
-    iter::Sum,
-};
+use std::fmt::Display;
 
 // 有理数和复数社区库，没有标准库
 use num::complex::Complex;
@@ -109,7 +107,7 @@ fn debugout() {
 
 struct DisplayStructure(i32);
 
-impl fmt::Display for DisplayStructure {
+impl Display for DisplayStructure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -1915,8 +1913,25 @@ fn lifetime() {
      * 3.若存在多个输入生命周期，且其中一个是&self或&mut self，则&self的生命周期被赋给所有的输出生命周期
      */
 }
+fn error() -> Result<String, std::io::Error> {
+    // 可恢复错误处理
+    use std::fs::File;
+    use std::io::ErrorKind;
+    let f = File::open("hello.txt")?;
+    Ok("string".to_string())
+    // let f = match f {
+    //     Ok(file) => file,
+    //     Err(error) => match error.kind() {
+    //         ErrorKind::NotFound => match  File::create("hello.txt") {
+    //             Ok(fc) => fc,
+    //             Err(e) => panic!("Problem creating the file: {:?}", e),
+    //         }
+    //         other_error => panic!("Problem opening the file: {:?}", other_error),
+    //     }
+    // };
+}
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     hellworld();
     var_shadowing();
     int_overflow();
@@ -1962,4 +1977,6 @@ fn main() {
     t();
     t_obj();
     lifetime();
+    error();
+    Ok(())
 }

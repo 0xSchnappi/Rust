@@ -1931,7 +1931,7 @@ fn error() -> Result<String, std::io::Error> {
     // };
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn base_parctice() {
     hellworld();
     var_shadowing();
     int_overflow();
@@ -1978,5 +1978,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     t_obj();
     lifetime();
     error();
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    base_parctice();
+
     Ok(())
 }

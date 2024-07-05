@@ -7,3 +7,4 @@ edition = "2021"
 
 num = "0.4.0"
 ahash = "0.8.11"
+futures = "0.3.30"

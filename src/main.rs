@@ -1980,8 +1980,64 @@ fn base_parctice() {
     error();
 }
 
+#[derive(Debug)]
+struct Foo3;
+
+impl Foo3 {
+    fn mutate_and_share(&mut self) -> &Self {
+        // 参数和返回值的生命周期一样
+        &*self
+    }
+    fn share(&self) {}
+}
+
+// 无界生命周期
+/**
+ * x参数传入的时候没有生命周期，凭空产生，实际上比'static要强大
+ */
+fn f<'a, T>(x: *const T) -> &'a T {
+    unsafe { &*x }
+}
+
+fn advanced_lifetime() {
+    // 例1
+    let mut foo = Foo3;
+    let loan = foo.mutate_and_share();
+    // foo.share();
+    // &mut self 借用的生命周期和 loan 的生命周期相同，将持续到 println 结束。
+    // 而在此期间 foo.share() 又进行了一次不可变 &foo 借用，违背了可变借用与不可变借用不能同时存在的规则，最终导致了编译错误。
+    println!("{:?}", loan);
+
+    // 例2
+    // use std::collections::HashMap;
+    // use std::hash::Hash;
+    // fn get_default<'m, K, V>(map: &'m mut HashMap<K, V>, key: K) -> &'m mut V
+    // where
+    //     K: Clone + Eq + Hash,
+    //     V: Default,
+    // {
+    //     match map.get_mut(&key) {
+    //         Some(value) => value,
+    //         None => {
+    //             map.insert(key.clone(), V::default());
+    //             map.get_mut(&key).unwrap()
+    //         }
+    //     }
+    // }
+    /*
+     * 分析代码可知在 match map.get_mut(&key) 方法调用完成后，对 map 的可变借用就可以结束了。
+     * 但从报错看来，编译器不太聪明，它认为该借用会持续到整个 match 语句块的结束，这便造成了后续借用的失败。
+     */
+}
+
+fn advanced_parctice() {
+    // advanced
+    advanced_lifetime();
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     base_parctice();
+    advanced_parctice();
 
     Ok(())
 }

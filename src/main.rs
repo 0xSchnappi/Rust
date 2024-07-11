@@ -2266,12 +2266,189 @@ fn Iterator_parctice() {
     println!("{}", val);
 }
 
+fn foo_3() -> i32 {
+    0
+}
+
+// 生命周期
+// 将 'b 生命周期延长至 'static 生命周期
+unsafe fn extend_lifetime<'b>(r: R<'b>) -> R<'static> {
+    std::mem::transmute::<R<'b>, R<'static>>(r)
+}
+
+// 将 'static 生命周期缩短至 'c 生命周期
+unsafe fn shorten_invariant_lifetime<'b, 'c>(r: &'b mut R<'static>) -> &'b mut R<'c> {
+    std::mem::transmute::<&'b mut R<'static>, &'b mut R<'c>>(r)
+}
+
+struct R<'a>(&'a i32);
+
+// newtype 就是元组结构体
+// 孤儿原则的限制，Vev(类型)和Display(trait)没有一个在作用域就不能实现Display
+// 如果使用newtype就可以绕过孤儿原则，因为newtype在作用域，属于新类型
+// 此时Wrapper_1不能使用Vec的所有方法，可以通过Wrapper_1.0.method()的方式使用
+struct Wrapper_1(Vec<String>);
+
+impl fmt::Display for Wrapper_1 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[{}]", self.0.join(", "))
+    }
+}
+
+// 使用第三方库完成整数转枚举类型
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
+
+#[derive(FromPrimitive)]
+enum MyEnum {
+    A = 1,
+    B,
+    C,
+}
+
+//  Tryfrom
+use std::convert::TryFrom;
+
+enum MyEnum1 {
+    A = 1,
+    B,
+    C,
+}
+
+impl TryFrom<i32> for MyEnum1 {
+    type Error = ();
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            x if x == MyEnum1::A as i32 => Ok(MyEnum1::A),
+            x if x == MyEnum1::B as i32 => Ok(MyEnum1::B),
+            x if x == MyEnum1::C as i32 => Ok(MyEnum1::C),
+            _ => Err(()),
+        }
+    }
+}
+
+// 使用TryFrom+宏
+#[macro_export]
+macro_rules! back_to_enum {
+    ($(#[$meta:meta])* $vis:vis enum $name:ident {
+        $($(#[$vmeta:meta])* $vname:ident $(= $val:expr)?,)*
+    }) => {
+        $(#[$meta])*
+        $vis enum $name {
+            $($(#[$vmeta])* $vname $(= $val)?,)*
+        }
+
+        impl std::convert::TryFrom<i32> for $name {
+            type Error = ();
+
+            fn try_from(v: i32) -> Result<Self, Self::Error> {
+                match v {
+                    $(x if x == $name::$vname as i32 => Ok($name::$vname),)*
+                    _ => Err(()),
+                }
+            }
+        }
+    }
+}
+
+back_to_enum! {
+    enum MyEnum2 {
+        A = 1,
+        B,
+        C,
+    }
+}
+
+fn type_parctice() {
+    let a: i32 = 10;
+    let b: u16 = 1000;
+
+    // 通常表示范围小的转表示范围大的，反之则会出现意外
+    if a < (b as i32) {
+        println!("The is less than one hundred");
+    }
+
+    // 内存地址转指针
+    let mut values: [i32; 2] = [1, 2];
+    let p1: *mut i32 = values.as_mut_ptr();
+    let first_address = p1 as usize; // 将p1内存地址转为一个整数
+    let second_address = first_address + 4; // 4==std::mem::sizeof::<i32>(), i32类型占用4个字节
+    let p2 = second_address as *mut i32;
+    unsafe {
+        *p2 += 1;
+    }
+    assert_eq!(values[1], 3);
+
+    // 类型转换不具有传递性
+    //  e as U1 as U2 是合法的，也不能说明 e as U2 是合法的（e 不能直接转换成 U2）
+
+    let b: i16 = 1500;
+
+    let b_: u8 = match b.try_into() {
+        Ok(b1) => b1,
+        Err(e) => {
+            println!("{:?}", e.to_string());
+            0
+        }
+    };
+
+    // 裸指针转函数在指针
+
+    let pointer = foo_3 as *const ();
+    let function = unsafe {
+        // 将裸指针转换为函数指针
+        std::mem::transmute::<*const (), fn() -> i32>(pointer)
+    };
+    assert_eq!(function(), 0);
+
+    let w = Wrapper_1(vec![String::from("hello"), String::from("world")]);
+    println!("w = {}", w);
+
+    // 类型别名
+    type Meters = u32;
+
+    // 整数转枚举类型支持不友好，实现的方法
+    // 第三方库实现
+
+    let x = 2;
+
+    match FromPrimitive::from_i32(x) {
+        Some(MyEnum::A) => println!("Got A"),
+        Some(MyEnum::B) => println!("Got B"),
+        Some(MyEnum::C) => println!("Got C"),
+        None => println!("Couldn't convert {}", x),
+    }
+
+    // TryFrom实现
+    let x = MyEnum1::C as i32;
+
+    match x.try_into() {
+        Ok(MyEnum1::A) => println!("a"),
+        Ok(MyEnum1::B) => println!("b"),
+        Ok(MyEnum1::C) => println!("c"),
+        Err(_) => eprintln!("unknow number"),
+    }
+
+    // TryFrom+宏
+    let x = MyEnum2::C as i32;
+
+    match x.try_into() {
+        Ok(MyEnum2::A) => println!("a"),
+
+        Ok(MyEnum2::B) => println!("b"),
+        Ok(MyEnum2::C) => println!("c"),
+        Err(_) => eprintln!("unknow number"),
+    }
+}
+
 fn advanced_parctice() {
     // advanced
     advanced_lifetime();
     advanced_futures();
     closure();
     Iterator_parctice();
+    type_parctice();
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

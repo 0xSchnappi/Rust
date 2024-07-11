@@ -2093,10 +2093,185 @@ fn advanced_futures() {
     block_on(asyc_main());
 }
 
+// 结构体闭包
+// impl<T> Cacher<T>
+// where
+//     T: Fn(u32) -> u32,
+// {
+//     fn new(query: T) -> Cacher<T> {
+//         Cacher {
+//             query,
+//             value: None,
+//         }
+//     }
+
+//     // 先查询缓存值 `self.value`，若不存在，则调用 `query` 加载
+//     fn value(&mut self, arg: u32) -> u32 {
+//         match self.value {
+//             Some(v) => v,
+//             None => {
+//                 let v = (self.query)(arg);
+//                 self.value = Some(v);
+//                 v
+//             }
+//         }
+//     }
+// }
+
+// fn fn_once<F>(func: F)
+// where
+//     F: FnOnce(usize) -> bool,
+// {
+//     println!("{}", func(3));
+//     println!("{}", func(4));    // 所有权转移
+// }
+
+fn fn_once<F>(func: F)
+where
+    F: FnOnce(usize) -> bool + Copy,
+{
+    println!("{}", func(3));
+    println!("{}", func(4));
+}
+
+fn exec<'a, F: FnMut(&'a str)>(mut f: F) {
+    f("hello")
+}
+
+fn closure() {
+    /*
+     * 闭包是一种匿名函数，它可以赋值给变量也可以作为参数传递给其它函数，
+     * 不同于函数的是，它允许捕获调用者作用域中的值
+     */
+    let x = 1;
+    let sum = |y| x + y;
+    assert_eq!(3, sum(2));
+    let add_sum_one = |a: i32, b: i32| a + b + 1;
+    assert_eq!(8, add_sum_one(2, 5));
+
+    // 当编译器推导出一种类型后，它就会一直使用该类型
+    let example_closure = |x| x;
+
+    let s = example_closure(String::from("hello"));
+    // let n = example_closure(5);
+
+    let equal_to_x = |z| z == x;
+
+    let y = 1;
+
+    assert!(equal_to_x(y));
+
+    let x = vec![1, 2, 3];
+    fn_once(|z| z == x.len());
+
+    use std::thread;
+    let v = vec![1, 2, 3];
+    let handle = thread::spawn(move || {
+        // move强制闭包取得捕获变量的所有权，
+        // 这种用法通常用于闭包的生命周期大于捕获变量的生命周期时，例如将闭包返回或移入其他线程。
+        println!("Here's a vector: {:?}", v);
+    });
+    handle.join().unwrap();
+
+    // 可变借用闭包，需要闭包变量是mut
+    let mut s = String::new();
+
+    let mut update_string = |str| s.push_str(str);
+    update_string("hello");
+
+    println!("{:?}", s);
+
+    //
+    let mut s = String::new();
+
+    // 只要闭包捕获的类型都实现了Copy特征的话，这个闭包就会默认实现Copy特征
+    let update_string = |str| s.push_str(str);
+
+    exec(update_string);
+    // 如果拿到的是s的所有权或可变引用，都是不能Copy的
+    // exec(update_string);
+}
+
+// 实现Iterator特征
+struct Counter {
+    count: u32,
+}
+
+impl Counter {
+    fn new() -> Counter {
+        Counter { count: 0 }
+    }
+}
+
+impl Iterator for Counter {
+    type Item = u32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.count < 5 {
+            self.count += 1;
+            Some(self.count)
+        } else {
+            None
+        }
+    }
+}
+
+fn Iterator_parctice() {
+    // 迭代器就是实现了IntoIterator的next方法，next方法返回值是Option类型
+    // pub trait Iterator {
+    //     type Item;
+
+    //     fn next(&mut self) -> Option<Self::Item>;
+
+    //     // 省略其余有默认实现的方法
+    // }
+    let arr = [1, 2, 3];
+    let mut arr_iter = arr.into_iter();
+
+    assert_eq!(arr_iter.next(), Some(1));
+    assert_eq!(arr_iter.next(), Some(2));
+    assert_eq!(arr_iter.next(), Some(3));
+    assert_eq!(arr_iter.next(), None); // 迭代器是消耗性的，每次消耗它一个元素，最终迭代器中将没有任何元素，只能返回 None
+
+    // into_iter 会夺走所有权
+    // iter 是借用
+    // iter_mut 是可变借用
+
+    let mut counter = Counter::new();
+
+    assert_eq!(counter.next(), Some(1));
+    assert_eq!(counter.next(), Some(2));
+    assert_eq!(counter.next(), Some(3));
+    assert_eq!(counter.next(), Some(4));
+    assert_eq!(counter.next(), Some(5));
+    assert_eq!(counter.next(), None);
+
+    let sum: u32 = Counter::new()
+        .zip(Counter::new().skip(1))
+        .map(|(a, b)| a * b)
+        .filter(|x| x % 3 == 0)
+        .sum();
+    assert_eq!(18, sum);
+    let v = vec![1u64, 2, 3, 4, 5, 6];
+    let val = v
+        .iter()
+        .enumerate()
+        // 每两个元素剔除一个
+        // [1, 3, 5]
+        .filter(|&(idx, _)| idx % 2 == 0)
+        .map(|(_, val)| val)
+        // 累加 1+3+5 = 9
+        .fold(0u64, |sum, acm| sum + acm);
+
+    println!("{}", val);
+}
+
 fn advanced_parctice() {
     // advanced
     advanced_lifetime();
     advanced_futures();
+    closure();
+    Iterator_parctice();
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

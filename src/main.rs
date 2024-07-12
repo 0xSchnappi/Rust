@@ -2442,6 +2442,129 @@ fn type_parctice() {
     }
 }
 
+trait Draw1 {
+    fn draw(&self);
+}
+
+struct Button1 {
+    id: u32,
+}
+impl Draw1 for Button1 {
+    fn draw(&self) {
+        println!("这是屏幕上第{}号按钮", self.id)
+    }
+}
+
+struct Select {
+    id: u32,
+}
+
+impl Draw1 for Select {
+    fn draw(&self) {
+        println!("这个选择框贼难用{}", self.id)
+    }
+}
+
+use std::cell::Cell;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Arc;
+use std::thread;
+
+fn auto_ptr() {
+    // 使用Box<T>将数据存储在堆上
+    let a = Box::new(3); // Box实现了Drop特征，当离开作用域就会自动被释放
+    println!("a = {}", a); // a = 3     自动调用Deref解引用
+
+    // 下面一行代码将报错
+    // let b = a + 1; // cannot add `{integer}` to `Box<{integer}>`
+    let b = *a + 1; // *显式解引用
+
+    // 避免栈上的数据的拷贝
+    // 在栈上创建一个长度为1000的数组
+    let arr = [0; 1000];
+    // 将arr所有权转移arr1，由于 `arr` 分配在栈上，因此这里实际上是直接重新深拷贝了一份数据
+    let arr1 = arr;
+
+    // arr 和 arr1 都拥有各自的栈上数组，因此不会报错
+    println!("{:?}", arr.len());
+    println!("{:?}", arr1.len());
+
+    // 在堆上创建一个长度为1000的数组，然后使用一个智能指针指向它
+    let arr = Box::new([0; 1000]);
+    // 将堆上数组的所有权转移给 arr1，由于数据在堆上，因此仅仅拷贝了智能指针的结构体，底层数据并没有被拷贝
+    // 所有权顺利转移给 arr1，arr 不再拥有所有权
+    let arr1 = arr;
+    println!("{:?}", arr1.len());
+    // 由于 arr 不再拥有底层数组的所有权，因此下面代码将报错
+    // println!("{:?}", arr.len());
+
+    // 将动态大小类型变为Sized固定大小类型
+    // enum List {
+    //     Cons(i32, List), // List无限嵌套，编译器不知道这个枚举类型到底多大
+    //     Nil,
+    // }
+    // 解决方法
+    // enum List {
+    //     Cons(i32, Box<List>),
+    //     Nil,
+    // }
+
+    // 特征对象
+    let elems: Vec<Box<dyn Draw1>> = vec![Box::new(Button1 { id: 1 }), Box::new(Select { id: 2 })];
+
+    for e in elems {
+        e.draw()
+    }
+
+    let a = Rc::new(String::from("hello, world"));
+    let b = Rc::clone(&a); // 复制了智能指针并增加了引用计数，并没有克隆底层数据
+
+    assert_eq!(2, Rc::strong_count(&a));
+    assert_eq!(Rc::strong_count(&a), Rc::strong_count(&b));
+
+    let a = Rc::new(String::from("test ref counting"));
+    println!("count after creating a = {}", Rc::strong_count(&a));
+    let b = Rc::clone(&a);
+    println!("count after creating b = {}", Rc::strong_count(&a));
+    {
+        let c = Rc::clone(&a);
+        println!("count after creating c = {}", Rc::strong_count(&c));
+    }
+    println!("count after c goes out of scope = {}", Rc::strong_count(&a));
+
+    // 多线程不能使用Rc，需要使用Arc(atomic Rc)，实现了原子化，实现了Send特征
+    let s = Arc::new(String::from("多线程漫游者"));
+    for _ in 0..10 {
+        let s = Arc::clone(&s);
+        let handle = thread::spawn(move || println!("{}", s));
+    }
+
+    // Cell 和 RefCell 在功能上没有区别，区别在于 Cell<T> 适用于 T 实现 Copy 的情况
+    let c = Cell::new("asdf");
+    let one = c.get();
+    c.set("qwer");
+    let two = c.get();
+    println!("{},{}", one, two);
+
+    /*
+     * Rust 规则                                        智能指针带来的额外规则
+     * 1. 一个数据只有有一个所有者                          Rc/Arc让一个数据可以拥有多个所有者
+     * 2. 要么多个不可变借用，要么一个可变借用                RefCell实现编译期可变、不可变引用共存(RefCell 只是将借用规则从编译期推迟到程序运行期，并不能帮你绕过这个规则)
+     * 3. 违背规则导致编译错误                              违背规则导致运行时panic
+     */
+
+    // Rc实现可以有多个所有者， RefCell实现可变性
+    let s = Rc::new(RefCell::new("我很善变，还拥有多个主人".to_string()));
+
+    let s1 = s.clone();
+    let s2 = s.clone();
+    // let mut s2 = s.borrow_mut();
+    s2.borrow_mut().push_str(", oh yeah!");
+
+    println!("{:?}\n{:?}\n{:?}", s, s1, s2);
+}
+
 fn advanced_parctice() {
     // advanced
     advanced_lifetime();
@@ -2449,6 +2572,7 @@ fn advanced_parctice() {
     closure();
     Iterator_parctice();
     type_parctice();
+    auto_ptr();
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

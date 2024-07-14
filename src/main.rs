@@ -2565,18 +2565,216 @@ fn auto_ptr() {
     println!("{:?}\n{:?}\n{:?}", s, s1, s2);
 }
 
+use std::sync::Barrier;
+use std::time::Duration;
+fn multiple_thread() {
+    let v = vec![1, 2, 3];
+
+    let handle = thread::spawn(move || {
+        // move 获取v所有权
+        println!("Here's a vector: {:?}", v);
+    });
+
+    handle.join().unwrap();
+
+    // 下面代码会报错borrow of moved value: `v`
+    // println!("{:?}",v);
+
+    // 线程屏障 Barrier
+    let mut handles = Vec::with_capacity(6);
+    let barrier = Arc::new(Barrier::new(6));
+
+    for _ in 0..6 {
+        let b = barrier.clone();
+        handles.push(thread::spawn(move || {
+            println!("before wait");
+            b.wait(); // 等待所有线程执行到这里时继续执行
+            println!("after wait");
+        }));
+    }
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    // 线程局部存储
+    thread_local!(static FOO: RefCell<u32> = RefCell::new(1)); //  使用 static 声明为生命周期为 'static 的静态变量。
+
+    FOO.with(|f| {
+        assert_eq!(*f.borrow(), 1);
+        *f.borrow_mut() = 2;
+    });
+
+    // 每个线程开始时都会拿到线程局部变量的FOO的初始值
+    let t = thread::spawn(move || {
+        FOO.with(|f| {
+            assert_eq!(*f.borrow(), 1);
+            *f.borrow_mut() = 3;
+        });
+    });
+
+    // 等待线程完成
+    t.join().unwrap();
+
+    // 尽管子线程中修改为了3，我们在这里依然拥有main线程中的局部值：2
+    FOO.with(|f| {
+        assert_eq!(*f.borrow(), 2);
+    });
+
+    // 第三方库
+    use thread_local::ThreadLocal;
+    let tls = Arc::new(ThreadLocal::new());
+    let mut v = vec![];
+    // 创建多个线程
+    for _ in 0..5 {
+        let tls2 = tls.clone();
+        let handle = thread::spawn(move || {
+            // 将计数器加1
+            // 请注意，由于线程 ID 在线程退出时会被回收，因此一个线程有可能回收另一个线程的对象
+            // 这只能在线程退出后发生，因此不会导致任何竞争条件
+            let cell = tls2.get_or(|| Cell::new(0));
+            cell.set(cell.get() + 1);
+        });
+        v.push(handle);
+    }
+
+    for handle in v {
+        handle.join().unwrap();
+    }
+
+    // 一旦所有子线程结束，收集它们的线程局部变量中的计数器值，然后进行求和
+    let tls = Arc::try_unwrap(tls).unwrap();
+    let total = tls.into_iter().fold(0, |x, y| {
+        // 打印每个线程局部变量中的计数器值，发现不一定有5个线程，
+        // 因为一些线程已退出，并且其他线程会回收退出线程的对象
+        println!("x: {}, y: {}", x, y.get());
+        x + y.get()
+    });
+
+    // 和为5
+    assert_eq!(total, 5);
+
+    // 条件控制线程的挂起和执行
+    use std::sync::{Condvar, Mutex};
+    let pair = Arc::new((Mutex::new(false), Condvar::new()));
+    let pair2 = pair.clone();
+
+    thread::spawn(move || {
+        let (lock, cvar) = &*pair2;
+        let mut started = lock.lock().unwrap();
+        println!("changing started");
+        *started = true;
+        cvar.notify_one();
+    });
+
+    let (lock, cvar) = &*pair;
+    let mut started = lock.lock().unwrap();
+    while !*started {
+        started = cvar.wait(started).unwrap();
+    }
+
+    println!("started changed");
+
+    // 只被调用一次的函数
+    use std::sync::Once;
+    static mut VAL: usize = 0;
+    static INIT: Once = Once::new();
+    let handle1 = thread::spawn(move || {
+        INIT.call_once(|| unsafe {
+            VAL = 1;
+        });
+    });
+
+    let handle2 = thread::spawn(move || {
+        INIT.call_once(|| unsafe {
+            VAL = 2;
+        });
+    });
+
+    handle1.join().unwrap();
+    handle2.join().unwrap();
+
+    println!("{}", unsafe { VAL });
+
+    // 消息传递
+    // 单发送者，单接收者
+    use std::sync::mpsc;
+
+    // 创建一个消息通道，返回一个元组：（发送者，接收者）
+    let (tx, rx) = mpsc::channel();
+
+    // 创建线程，并发送消息
+    thread::spawn(move || {
+        // 发送一个数字1，send方法返回Result<T,E>，通过unwrap进行快速错误处理
+        tx.send(1).unwrap();
+
+        // 下面代码将报错，因为编译器自动推导出通道传递的值是i32类型，
+        // 那么Option<i32>类型将产生不匹配错误
+        // tx.send(Some(1)).unwrap();
+    });
+
+    // 在主线程中接收子线程发送的消息并输出
+    println!("receive {}", rx.recv().unwrap());     // 阻塞线程直到读取到值或者通道被关闭
+
+    // 不阻塞方法
+
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        tx.send(1).unwrap();
+    });
+
+    println!("receive {:?}", rx.try_recv());
+
+    // 传输具有所有权的数据
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        let s = String::from("我，飞走咯！");
+        tx.send(s).unwrap();
+        // println!("val is {}", s);    // s所有权已经发生转移
+    });
+
+    let received = rx.recv().unwrap();
+    println!("Got: {}", received);
+
+    // for循环接收
+    let (tx, rx) = mpsc::channel();
+
+    thread::spawn(move || {
+        let vals = vec![
+            String::from("hi"),
+            String::from("from"),
+            String::from("the"),
+            String::from("thread"),
+        ];
+
+        for val in vals {
+            tx.send(val).unwrap();
+            thread::sleep(Duration::from_secs(1));
+        }
+    });
+
+    for received in rx {
+        println!("Got: {}", received);
+    }
+
+    // 使用多发送者
+}
+
 fn advanced_parctice() {
     // advanced
-    advanced_lifetime();
-    advanced_futures();
-    closure();
-    Iterator_parctice();
-    type_parctice();
-    auto_ptr();
+    // advanced_lifetime();
+    // advanced_futures();
+    // closure();
+    // Iterator_parctice();
+    // type_parctice();
+    // auto_ptr();
+    multiple_thread();
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    base_parctice();
+    // base_parctice();
     advanced_parctice();
 
     Ok(())

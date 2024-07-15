@@ -6,6 +6,8 @@ use std::fmt;
 /// 稳定注释
 use std::fmt::Display;
 use std::sync::mpsc::sync_channel;
+use std::thread::sleep;
+use std::thread::spawn;
 
 // 有理数和复数社区库，没有标准库
 use num::complex::Complex;
@@ -2834,8 +2836,119 @@ fn multiple_thread() {
     }
     println!("finished iterating");
 
-    // 性能更好的多发送多接收
+    // 性能更好的多发送多接收库
     // crossbeam-channel、flume
+
+    // 单线程中使用Mutex
+    let m = Mutex::new(5);
+
+    {
+        // 获取锁，然后deref为`m`的引用
+        // lock返回的是Result
+        let mut num = m.lock().unwrap();
+        *num = 6;
+        // 锁自动被drop
+    }
+    println!("m = {:?}", m);
+
+    // 多线程中使用Mutex
+    // 通过`Arc`实现`Mutex`的所有权
+    //  Arc它的内部计数器是多线程安全的
+    let counter =  Arc::new(Mutex::new(0));
+    let mut handles = vec![];
+
+    for _ in 0..10 {
+        let counter = Arc::clone(&counter);
+        // 创建子线程，并将`Mutex`的所有权拷贝传入到子线程中
+        let handle = thread::spawn(move || {
+            let mut num = counter.lock().unwrap();
+            *num += 1;
+        });
+        handles.push(handle);
+    }
+
+    // 等待所有子线程完成
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    // 输出最终的计数结果
+    println!("Result: {}", *counter.lock().unwrap());
+
+    // 总结：Rc<T>/RefCell<T>用于单线程内部可变性， Arc<T>/Mutex<T>用于多线程内部可变性。
+    // 使用try_lock可以缓解死锁问题，因为它会尝试去获取一次资源，如果无法获取会返回一个错误，因此不会发生阻塞
+
+    // 读写锁
+    use std::sync::RwLock;
+
+    let lock = RwLock::new(5);
+
+    // 同一时间允许多个读
+    {
+        let r1 = lock.read().unwrap();
+        let r2 = lock.read().unwrap();
+        let r3 = lock.try_read();
+
+        println!("锁的获取结果{:?}", r3);
+        assert_eq!(*r1, 5);
+        assert_eq!(*r2, 5);
+    }
+
+    // 同一时间只允许一个写
+    {
+        let mut w = lock.write().unwrap();
+        *w += 1;
+        assert_eq!(*w, 6);
+        // 以下代码会阻塞发生死锁，因为读和写不允许同时存在
+        // 写锁w直到该语句块结束才被释放，因此下面的读锁依然处于`w`的作用域中
+        // let r1 = lock.read();
+        // println!("{:?}",r1);
+        let r1 = lock.try_read();
+        println!("锁的获取结果{:?}", r1)
+    }
+
+    // 总结：使用RwLock要确保满足以下两个条件：并发读，且需要对读到的资源进行"长时间"的操作
+
+    // 锁的三方库：parking_lot、spin(性能高于前者，但是最近没更新了)
+
+    // 用条件变量(Condvar)控制线程同步
+
+    let flag = Arc::new(Mutex::new(false));
+    let cond = Arc::new(Condvar::new());
+    let cflag = Arc::clone(&flag);
+    let ccond = Arc::clone(&cond);
+
+    let hdl = spawn(move || {
+        let mut lock = cflag.lock().unwrap();
+        let mut counter = 0;
+
+        while counter < 3 {
+            while !*lock {
+                // wait 方法会接收一个MutexGuard<'a, T>，且它会自动地暂时释放这个锁，使其他线程可以拿到这个锁并更新数据
+                // 同时当前线程在此处会被阻塞，直到被其他地方notify后，他会将原来的MutexGuard<'a, T>还给我们，即重新获取到了锁，同时唤醒了此线程
+                lock = ccond.wait(lock).unwrap();
+            }
+            *lock = false;
+
+            counter += 1;
+            println!("inner counter: {}", counter);
+        }
+    });
+
+    let mut counter = 0;
+    loop {
+        sleep(Duration::from_millis(1000));
+        *flag.lock().unwrap() = true;
+        counter += 1;
+        if counter>3{
+            break;
+        }
+        println!("outside counter: {}", counter);
+        cond.notify_one();
+    }
+    hdl.join().unwrap();
+    println!("{:?}", flag);
+
 }
 
 fn advanced_parctice() {
@@ -2849,9 +2962,30 @@ fn advanced_parctice() {
     multiple_thread();
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+// 信号量 Semaphore
+use tokio::sync::Semaphore;
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // base_parctice();
     advanced_parctice();
+
+    // 信号量 Semaphore
+    let semaphore = Arc::new(Semaphore::new(3));
+    let mut join_handles = Vec::new();
+
+    for _ in 0..5{
+        let permit = semaphore.clone().acquire_owned().await.unwrap();
+        join_handles.push(tokio::spawn(async move {
+            //
+            // 这里执行任务
+            //
+            drop(permit);
+        }));
+    }
+
+    for handle in join_handles{
+        handle.await.unwrap();
+    }
 
     Ok(())
 }

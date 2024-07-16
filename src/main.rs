@@ -3038,6 +3038,13 @@ fn multiple_thread() {
     t.join().unwrap();
 }
 
+// 全局变量
+// 静态常量
+const MAX_ID: usize = usize::MAX / 2;
+// 静态变量
+// 静态变量的类型必须实现Sync
+static mut REQUEST_RECV: usize = 0;
+
 fn advanced_parctice() {
     // advanced
     // advanced_lifetime();

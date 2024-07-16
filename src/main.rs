@@ -2275,16 +2275,16 @@ fn foo_3() -> i32 {
 
 // 生命周期
 // 将 'b 生命周期延长至 'static 生命周期
-unsafe fn extend_lifetime<'b>(r: R<'b>) -> R<'static> {
-    std::mem::transmute::<R<'b>, R<'static>>(r)
+unsafe fn extend_lifetime<'b>(r: R1<'b>) -> R1<'static> {
+    std::mem::transmute::<R1<'b>, R1<'static>>(r)
 }
 
 // 将 'static 生命周期缩短至 'c 生命周期
-unsafe fn shorten_invariant_lifetime<'b, 'c>(r: &'b mut R<'static>) -> &'b mut R<'c> {
-    std::mem::transmute::<&'b mut R<'static>, &'b mut R<'c>>(r)
+unsafe fn shorten_invariant_lifetime<'b, 'c>(r: &'b mut R1<'static>) -> &'b mut R1<'c> {
+    std::mem::transmute::<&'b mut R1<'static>, &'b mut R1<'c>>(r)
 }
 
-struct R<'a>(&'a i32);
+struct R1<'a>(&'a i32);
 
 // newtype 就是元组结构体
 // 孤儿原则的限制，Vev(类型)和Display(trait)没有一个在作用域就不能实现Display
@@ -2575,6 +2575,41 @@ enum Fruit {
     Apple(u8),
     Orange(String),
 }
+
+use std::ops::Sub;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::thread::JoinHandle;
+use std::time::Instant;
+
+const N_TIMES: u64 = 10000000;
+const N_THREADS: usize = 10;
+
+static R: AtomicU64 = AtomicU64::new(0);
+
+fn add_n_times(n: u64) -> JoinHandle<()> {
+    thread::spawn(move || {
+        for _ in 0..n {
+            R.fetch_add(1, Ordering::Relaxed);
+        }
+    })
+}
+
+// 内部可变性
+struct Counter1 {
+    count: u64,
+}
+
+// 裸指针实现Send
+#[derive(Debug)]
+struct MyBox(*mut u8);
+unsafe impl Send for MyBox {}
+
+// 裸指针实现Sync
+#[derive(Debug)]
+struct MyBox1(*const u8);
+unsafe impl Send for MyBox1 {}
+unsafe impl Sync for MyBox1 {}
+
 fn multiple_thread() {
     let v = vec![1, 2, 3];
 
@@ -2854,7 +2889,7 @@ fn multiple_thread() {
     // 多线程中使用Mutex
     // 通过`Arc`实现`Mutex`的所有权
     //  Arc它的内部计数器是多线程安全的
-    let counter =  Arc::new(Mutex::new(0));
+    let counter = Arc::new(Mutex::new(0));
     let mut handles = vec![];
 
     for _ in 0..10 {
@@ -2940,7 +2975,7 @@ fn multiple_thread() {
         sleep(Duration::from_millis(1000));
         *flag.lock().unwrap() = true;
         counter += 1;
-        if counter>3{
+        if counter > 3 {
             break;
         }
         println!("outside counter: {}", counter);
@@ -2949,6 +2984,58 @@ fn multiple_thread() {
     hdl.join().unwrap();
     println!("{:?}", flag);
 
+    // Atomic原子操作与内存顺序
+    let s = Instant::now();
+    let mut threads = Vec::with_capacity(N_THREADS);
+
+    for _ in 0..N_THREADS {
+        threads.push(add_n_times(N_TIMES));
+    }
+
+    for thread in threads {
+        thread.join().unwrap();
+    }
+
+    assert_eq!(N_TIMES * N_THREADS as u64, R.load(Ordering::Relaxed));
+
+    println!("{:?}", Instant::now().sub(s));
+
+    // 多线程中使用Atomic
+    use std::hint;
+    use std::sync::atomic::AtomicUsize;
+
+    let spinlock = Arc::new(AtomicUsize::new(1));
+
+    let spinlock_clone = Arc::clone(&spinlock);
+    let thread = thread::spawn(move || {
+        spinlock_clone.store(0, Ordering::SeqCst);
+    });
+
+    // 等待其他线程释放锁
+    while spinlock.load(Ordering::SeqCst) != 0 {
+        hint::spin_loop();
+    }
+
+    if let Err(panic) = thread.join() {
+        println!("Thread had an error:{:?}", panic);
+    }
+
+    // 为裸指针实现Send
+    let p = MyBox(5 as *mut u8);
+    let t = thread::spawn(move || {
+        println!("{:?}", p);
+    });
+
+    t.join().unwrap();
+
+    // 为裸指针实现Sync
+    let b = &MyBox1(5 as *const u8);
+    let v = Arc::new(Mutex::new(b));
+    let t = thread::spawn(move || {
+        let _v1 = v.lock().unwrap();
+    });
+
+    t.join().unwrap();
 }
 
 fn advanced_parctice() {
@@ -2973,7 +3060,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let semaphore = Arc::new(Semaphore::new(3));
     let mut join_handles = Vec::new();
 
-    for _ in 0..5{
+    for _ in 0..5 {
         let permit = semaphore.clone().acquire_owned().await.unwrap();
         join_handles.push(tokio::spawn(async move {
             //
@@ -2983,7 +3070,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }));
     }
 
-    for handle in join_handles{
+    for handle in join_handles {
         handle.await.unwrap();
     }
 
